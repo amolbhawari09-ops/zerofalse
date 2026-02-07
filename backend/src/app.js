@@ -16,6 +16,10 @@ const app = express();
 
 app.use(cors());
 
+// CRITICAL: webhook must use RAW body
+app.use('/api/webhook', express.raw({ type: 'application/json' }));
+
+// other routes use JSON
 app.use(express.json({
   limit: '10mb'
 }));
@@ -48,7 +52,7 @@ app.use('/api', routes);
 
 
 // =============================
-// STATIC FRONTEND (optional)
+// STATIC FRONTEND
 // =============================
 
 const frontendPath = path.join(__dirname, '../../frontend');
@@ -92,9 +96,5 @@ app.use((req, res) => {
   });
 });
 
-
-// =============================
-// EXPORT ONLY (NO app.listen HERE)
-// =============================
 
 module.exports = app;
