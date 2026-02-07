@@ -17,17 +17,17 @@ const app = express();
 app.use(cors());
 
 /*
-CRITICAL:
-GitHub webhook requires RAW body for signature verification
-This MUST come before express.json()
+CRITICAL: GitHub webhook signature verification requires RAW body.
+This MUST be before express.json()
 */
-app.use('/api/webhook', express.raw({
-  type: '*/*',
+app.use(express.raw({
+  type: 'application/json',
   limit: '10mb'
 }));
 
-
-// JSON parser for normal API routes
+/*
+JSON parser for normal API routes
+*/
 app.use(express.json({
   limit: '10mb'
 }));
@@ -39,12 +39,12 @@ app.use(express.urlencoded({
 
 
 // =====================================================
-// HEALTH CHECK
+// HEALTH CHECK ROUTE
 // =====================================================
 
 app.get('/health', (req, res) => {
 
-  res.json({
+  res.status(200).json({
     status: 'OK',
     service: 'ZeroFalse Backend',
     timestamp: new Date().toISOString(),
@@ -58,11 +58,18 @@ app.get('/health', (req, res) => {
 // API ROUTES
 // =====================================================
 
+/*
+All routes registered here:
+
+/api/webhook/github
+/api/scan
+/api/feedback
+*/
 app.use('/api', routes);
 
 
 // =====================================================
-// SERVE FRONTEND
+// STATIC FRONTEND (OPTIONAL)
 // =====================================================
 
 const frontendPath = path.join(__dirname, '../../frontend');
@@ -106,5 +113,9 @@ app.use((req, res) => {
 
 });
 
+
+// =====================================================
+// EXPORT APP
+// =====================================================
 
 module.exports = app;
