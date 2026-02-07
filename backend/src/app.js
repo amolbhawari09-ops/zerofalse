@@ -2,55 +2,99 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
+
 const routes = require('./routes');
 const logger = require('./utils/logger');
 
 const app = express();
 
-// Middleware
-app.use(cors());
-app.use(express.json());
 
-// Health check
+// =============================
+// CORE MIDDLEWARE
+// =============================
+
+app.use(cors());
+
+app.use(express.json({
+  limit: '10mb'
+}));
+
+app.use(express.urlencoded({
+  extended: true,
+  limit: '10mb'
+}));
+
+
+// =============================
+// HEALTH CHECK
+// =============================
+
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
-    timestamp: new Date(),
-    version: '1.0.0',
-    env: process.env.NODE_ENV
+    service: 'ZeroFalse Backend',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
-// API routes
+
+// =============================
+// API ROUTES
+// =============================
+
 app.use('/api', routes);
 
-// Serve frontend static files (if deployed together)
-app.use(express.static('../frontend'));
 
-// Error handling
+// =============================
+// STATIC FRONTEND (optional)
+// =============================
+
+const frontendPath = path.join(__dirname, '../../frontend');
+
+app.use(express.static(frontendPath));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(frontendPath, 'index.html'));
+});
+
+
+// =============================
+// ERROR HANDLER
+// =============================
+
 app.use((err, req, res, next) => {
-  logger.error('Unhandled error:', { error: err.message, stack: err.stack });
-  res.status(500).json({ 
+
+  logger.error('Unhandled error', {
+    message: err.message,
+    stack: err.stack
+  });
+
+  res.status(500).json({
     error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined
+    message:
+      process.env.NODE_ENV === 'development'
+        ? err.message
+        : undefined
   });
+
 });
 
-// 404 handler
+
+// =============================
+// 404 HANDLER
+// =============================
+
 app.use((req, res) => {
-  res.status(404).json({ error: 'Not found' });
+  res.status(404).json({
+    error: 'Route not found'
+  });
 });
 
-// LOCAL DEVELOPMENT ONLY
-// This block only runs when NOT on Vercel
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    logger.info(`🛡️ ZeroFalse server running on port ${PORT}`);
-    logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  });
-}
 
-// VERCEL SERVERLESS EXPORT
-// This is required for Vercel deployment
+// =============================
+// EXPORT ONLY (NO app.listen HERE)
+// =============================
+
 module.exports = app;
