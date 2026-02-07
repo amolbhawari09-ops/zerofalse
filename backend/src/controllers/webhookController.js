@@ -1,63 +1,131 @@
-const ScannerService = require('../services/scannerService');
-const { verifyGitHubSignature } = require('../utils/crypto');
+const crypto = require('crypto');
 const logger = require('../utils/logger');
+const ScannerService = require('../services/scannerService');
 
 class WebhookController {
-  async handleGitHubWebhook(req, res) {
+
+  verifySignature(rawBody, signature, secret) {
+
+    if (!signature || !secret) return false;
+
+    const hmac = crypto.createHmac('sha256', secret);
+
+    const digest =
+      'sha256=' +
+      hmac.update(rawBody).digest('hex');
+
     try {
-      // Verify signature
-      const signature = req.headers['x-hub-signature-256'];
-      const payload = req.body; // Raw body
-      const secret = process.env.GITHUB_WEBHOOK_SECRET;
-      
-      if (!verifyGitHubSignature(payload, signature, secret)) {
-        logger.warn('Invalid webhook signature');
+
+      return crypto.timingSafeEqual(
+        Buffer.from(signature),
+        Buffer.from(digest)
+      );
+
+    } catch {
+
+      return false;
+
+    }
+
+  }
+
+  async handleGitHubWebhook(req, res) {
+
+    try {
+
+      const signature =
+        req.headers['x-hub-signature-256'];
+
+      const secret =
+        process.env.GITHUB_WEBHOOK_SECRET;
+
+      const rawBody = req.body;
+
+      // Verify webhook is from GitHub
+      const valid =
+        this.verifySignature(rawBody, signature, secret);
+
+      if (!valid) {
+
+        logger.warn('Invalid GitHub webhook signature');
+
         return res.status(401).send('Unauthorized');
+
       }
-      
-      const event = req.headers['x-github-event'];
-      const body = JSON.parse(payload);
-      
-      logger.info('GitHub webhook received', { event, action: body.action });
-      
-      // Handle pull request events
+
+      const payload =
+        JSON.parse(rawBody.toString());
+
+      const event =
+        req.headers['x-github-event'];
+
+      logger.info('GitHub webhook received', {
+        event,
+        action: payload.action
+      });
+
       if (event === 'pull_request') {
-        await this.handlePullRequest(body);
+
+        await this.handlePullRequest(payload);
+
       }
-      
+
       res.status(200).send('OK');
-      
+
     } catch (error) {
-      logger.error('Webhook error:', { error: error.message });
+
+      logger.error('Webhook error', {
+        error: error.message
+      });
+
       res.status(500).send('Error');
+
     }
+
   }
-  
+
   async handlePullRequest(payload) {
+
     const { action, pull_request, repository } = payload;
-    
-    // Only scan on PR open or synchronize
+
     if (!['opened', 'synchronize'].includes(action)) {
+
       return;
+
     }
-    
-    logger.info('Processing PR', {
+
+    logger.info('Scanning PR', {
+
       repo: repository.full_name,
-      pr: pull_request.number,
-      action
+
+      prNumber: pull_request.number,
+
+      branch: pull_request.head.ref
+
     });
-    
-    // For MVP: Simulate scanning (in production, fetch files from GitHub API)
-    // This would require GitHub App installation token
-    
-    // Placeholder: In production, implement:
-    // 1. Get installation token
-    // 2. Fetch changed files
-    // 3. Scan each file
-    // 4. Post PR comment with results
-    
-    logger.info('PR processing complete (simulated)');
+
+    // Call scanner service
+    await ScannerService.scanCode({
+
+      code: `
+        PR: ${repository.full_name}
+        Branch: ${pull_request.head.ref}
+      `,
+
+      filename: 'pull_request',
+
+      language: 'text',
+
+      repo: repository.full_name,
+
+      prNumber: pull_request.number
+
+    });
+
+    logger.info('PR scan completed');
+
   }
+
 }
 
 module.exports = new WebhookController();
