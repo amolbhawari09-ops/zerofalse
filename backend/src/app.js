@@ -10,16 +10,24 @@ const logger = require('./utils/logger');
 const app = express();
 
 
-// =============================
+// =====================================================
 // CORE MIDDLEWARE
-// =============================
+// =====================================================
 
 app.use(cors());
 
-// CRITICAL: webhook must use RAW body
-app.use('/api/webhook', express.raw({ type: 'application/json' }));
+/*
+CRITICAL:
+GitHub webhook requires RAW body for signature verification
+This MUST come before express.json()
+*/
+app.use('/api/webhook', express.raw({
+  type: '*/*',
+  limit: '10mb'
+}));
 
-// other routes use JSON
+
+// JSON parser for normal API routes
 app.use(express.json({
   limit: '10mb'
 }));
@@ -30,43 +38,47 @@ app.use(express.urlencoded({
 }));
 
 
-// =============================
+// =====================================================
 // HEALTH CHECK
-// =============================
+// =====================================================
 
 app.get('/health', (req, res) => {
+
   res.json({
     status: 'OK',
     service: 'ZeroFalse Backend',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'production'
   });
+
 });
 
 
-// =============================
+// =====================================================
 // API ROUTES
-// =============================
+// =====================================================
 
 app.use('/api', routes);
 
 
-// =============================
-// STATIC FRONTEND
-// =============================
+// =====================================================
+// SERVE FRONTEND
+// =====================================================
 
 const frontendPath = path.join(__dirname, '../../frontend');
 
 app.use(express.static(frontendPath));
 
 app.get('/', (req, res) => {
+
   res.sendFile(path.join(frontendPath, 'index.html'));
+
 });
 
 
-// =============================
+// =====================================================
 // ERROR HANDLER
-// =============================
+// =====================================================
 
 app.use((err, req, res, next) => {
 
@@ -76,24 +88,22 @@ app.use((err, req, res, next) => {
   });
 
   res.status(500).json({
-    error: 'Internal server error',
-    message:
-      process.env.NODE_ENV === 'development'
-        ? err.message
-        : undefined
+    error: 'Internal server error'
   });
 
 });
 
 
-// =============================
+// =====================================================
 // 404 HANDLER
-// =============================
+// =====================================================
 
 app.use((req, res) => {
+
   res.status(404).json({
     error: 'Route not found'
   });
+
 });
 
 
