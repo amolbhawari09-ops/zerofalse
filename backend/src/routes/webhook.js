@@ -3,6 +3,7 @@ const router = express.Router();
 
 const WebhookController = require('../controllers/webhookController');
 
-router.post('/github', WebhookController.handleGitHubWebhook.bind(WebhookController));
+// CHANGE IS HERE: '/' instead of '/github'
+router.post('/', WebhookController.handleGitHubWebhook.bind(WebhookController));
 
 module.exports = router;
