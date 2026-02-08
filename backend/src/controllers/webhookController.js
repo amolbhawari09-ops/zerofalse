@@ -4,44 +4,88 @@ const ScannerService = require('../services/scannerService');
 class WebhookController {
 
   // =====================================================
-  // SIGNATURE VERIFICATION
+  // SAFE SIGNATURE VERIFICATION
   // =====================================================
 
-  verifySignature(rawBody, signature, secret) {
+  verifySignature(req) {
 
     try {
 
+      const signature =
+        req.headers['x-hub-signature-256'];
+
+      const secret =
+        process.env.GITHUB_WEBHOOK_SECRET;
+
       if (!signature) {
-        console.error("❌ Missing GitHub signature header");
+
+        console.error("❌ Missing signature header");
         return false;
+
       }
 
       if (!secret) {
-        console.error("❌ Missing GITHUB_WEBHOOK_SECRET env variable");
+
+        console.error("❌ Missing webhook secret");
         return false;
+
       }
 
-      const hmac = crypto.createHmac('sha256', secret);
+      // CRITICAL: ensure raw Buffer
+      const rawBody =
+        Buffer.isBuffer(req.body)
+          ? req.body
+          : Buffer.from(req.body);
 
-      const digest =
+      const expectedSignature =
         'sha256=' +
-        hmac.update(rawBody).digest('hex');
+        crypto
+          .createHmac('sha256', secret)
+          .update(rawBody)
+          .digest('hex');
 
-      const sigBuffer = Buffer.from(signature);
-      const digestBuffer = Buffer.from(digest);
+      const sigBuffer =
+        Buffer.from(signature);
 
-      if (sigBuffer.length !== digestBuffer.length) {
+      const expectedBuffer =
+        Buffer.from(expectedSignature);
+
+      if (sigBuffer.length !== expectedBuffer.length) {
+
+        console.error("❌ Signature length mismatch");
         return false;
+
       }
 
-      return crypto.timingSafeEqual(sigBuffer, digestBuffer);
+      const valid =
+        crypto.timingSafeEqual(
+          sigBuffer,
+          expectedBuffer
+        );
 
-    } catch (error) {
+      if (!valid) {
 
-      console.error("❌ Signature verification error:", error);
+        console.error("❌ Invalid signature");
+        return false;
+
+      }
+
+      console.log("✅ Signature verified");
+
+      return true;
+
+    }
+    catch (error) {
+
+      console.error(
+        "❌ Signature verification error:",
+        error
+      );
 
       return false;
+
     }
+
   }
 
 
@@ -57,58 +101,61 @@ class WebhookController {
 
     try {
 
-      const signature =
-        req.headers['x-hub-signature-256'];
-
       const event =
         req.headers['x-github-event'];
 
       console.log("📌 Event:", event);
 
-      const secret =
-        process.env.GITHUB_WEBHOOK_SECRET;
+      // VERIFY SIGNATURE
+      if (!this.verifySignature(req)) {
 
-      const rawBody =
-        req.body;
+        return res
+          .status(401)
+          .send("Invalid signature");
 
-      // Verify signature
-      const valid =
-        this.verifySignature(rawBody, signature, secret);
-
-      if (!valid) {
-
-        console.error("❌ Invalid webhook signature");
-
-        return res.status(401).send("Unauthorized");
       }
 
-      console.log("✅ Signature verified");
-
+      // Parse payload safely
       const payload =
-        JSON.parse(rawBody.toString());
+        Buffer.isBuffer(req.body)
+          ? JSON.parse(req.body.toString())
+          : req.body;
 
-      console.log("📦 Repository:", payload.repository?.full_name);
-      console.log("⚡ Action:", payload.action);
+      console.log(
+        "📦 Repository:",
+        payload.repository?.full_name
+      );
+
+      console.log(
+        "⚡ Action:",
+        payload.action
+      );
 
 
-      // Handle Pull Request events
+      // HANDLE PR EVENT
       if (event === "pull_request") {
 
         await this.handlePullRequest(payload);
 
       }
 
-      console.log("✅ Webhook processing complete");
+      console.log("✅ Webhook processed");
 
       res.status(200).send("OK");
 
     }
     catch (error) {
 
-      console.error("❌ Webhook fatal error:", error);
+      console.error(
+        "❌ Webhook fatal error:",
+        error
+      );
 
-      res.status(500).send("Internal Server Error");
+      res.status(500)
+        .send("Internal Server Error");
+
     }
+
   }
 
 
@@ -126,55 +173,49 @@ class WebhookController {
         repository
       } = payload;
 
-
-      console.log("\n🔍 Pull Request Event Detected");
+      console.log("\n🔍 Pull Request Event");
 
       console.log("Action:", action);
       console.log("Repo:", repository.full_name);
-      console.log("PR Number:", pull_request.number);
-      console.log("Branch:", pull_request.head.ref);
+      console.log("PR:", pull_request.number);
 
-
-      // Only scan when opened or updated
       if (!["opened", "synchronize"].includes(action)) {
 
-        console.log("⏭️ Skipping action:", action);
-
+        console.log("⏭️ Skipping:", action);
         return;
-      }
 
+      }
 
       console.log("🧠 Starting scan...");
 
+      await ScannerService.scanCode(
 
-      await ScannerService.scanCode({
+        `Repository: ${repository.full_name}
+PR: ${pull_request.number}
+Branch: ${pull_request.head.ref}`,
 
-        code:
-          `Repository: ${repository.full_name}
-           PR: ${pull_request.number}
-           Branch: ${pull_request.head.ref}`,
+        "pull_request",
+        repository.full_name,
+        pull_request.number,
+        "text"
 
-        filename: "pull_request",
+      );
 
-        language: "text",
-
-        repo: repository.full_name,
-
-        prNumber: pull_request.number
-
-      });
-
-
-      console.log("✅ Scan completed successfully");
-
+      console.log("✅ Scan completed");
 
     }
     catch (error) {
 
-      console.error("❌ Pull Request handling error:", error);
+      console.error(
+        "❌ PR handling error:",
+        error
+      );
+
     }
+
   }
 
 }
 
-module.exports = new WebhookController();
+module.exports =
+  new WebhookController();
