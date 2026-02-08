@@ -1,150 +1,81 @@
 require('dotenv').config();
 
-const http = require('http');
 const app = require('./app');
 const { connectDatabase } = require('./config/database');
-
-
-// =============================
-// CONFIG
-// =============================
 
 const PORT = parseInt(process.env.PORT, 10) || 8080;
 const HOST = '0.0.0.0';
 
 let server;
-let isShuttingDown = false;
+let shuttingDown = false;
 
 
-// =============================
-// GLOBAL ERROR HANDLERS
-// =============================
-
-// Catch synchronous crashes
-process.on('uncaughtException', (err) => {
-  console.error('💥 UNCAUGHT EXCEPTION');
-  console.error(err.name, err.message);
-  console.error(err.stack);
-
+// Crash handlers
+process.on('uncaughtException', err => {
+  console.error('UNCAUGHT EXCEPTION:', err);
   shutdown(1);
 });
 
-// Catch async crashes
-process.on('unhandledRejection', (reason) => {
-  console.error('💥 UNHANDLED PROMISE REJECTION');
-  console.error(reason);
-
+process.on('unhandledRejection', err => {
+  console.error('UNHANDLED REJECTION:', err);
   shutdown(1);
 });
 
 
-// =============================
-// GRACEFUL SHUTDOWN HANDLER
-// =============================
-
-function shutdown(exitCode = 0) {
-
-  if (isShuttingDown) return;
-  isShuttingDown = true;
-
-  console.log('🛑 Graceful shutdown initiated...');
-
-  if (server) {
-    server.close(() => {
-      console.log('✅ HTTP server closed');
-      process.exit(exitCode);
-    });
-
-    // Force shutdown after timeout
-    setTimeout(() => {
-      console.error('⚠️ Forced shutdown');
-      process.exit(exitCode);
-    }, 10000);
-
-  } else {
-    process.exit(exitCode);
-  }
-}
-
-
-// Railway / Docker shutdown signals
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
 
-// =============================
-// BOOT FUNCTION
-// =============================
+function shutdown(code = 0) {
+
+  if (shuttingDown) return;
+  shuttingDown = true;
+
+  console.log('Shutting down server...');
+
+  if (server) {
+    server.close(() => {
+      console.log('Server closed.');
+      process.exit(code);
+    });
+
+    setTimeout(() => process.exit(code), 5000);
+
+  } else {
+    process.exit(code);
+  }
+}
+
 
 async function boot() {
 
   try {
 
     console.log('🚀 Starting ZeroFalse Backend...');
-    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-
-    // =============================
-    // CONNECT DATABASE
-    // =============================
-
-    console.log('📡 Connecting to MongoDB...');
+    console.log('Environment:', process.env.NODE_ENV);
 
     await connectDatabase();
 
-    console.log('✅ MongoDB connected successfully');
+    console.log('MongoDB connected successfully');
 
-
-    // =============================
-    // CREATE HTTP SERVER
-    // =============================
-
-    server = http.createServer(app);
-
-
-    // =============================
-    // START LISTENING
-    // =============================
-
-    server.listen(PORT, HOST, () => {
+    server = app.listen(PORT, HOST, () => {
 
       console.log('=================================');
-      console.log('✅ SERVER STATUS: RUNNING');
-      console.log(`🌐 Host: ${HOST}`);
-      console.log(`🚪 Port: ${PORT}`);
-      console.log(`🕒 Started: ${new Date().toISOString()}`);
+      console.log('SERVER STATUS: RUNNING');
+      console.log(`Host: ${HOST}`);
+      console.log(`Port: ${PORT}`);
+      console.log(`Started: ${new Date().toISOString()}`);
       console.log('=================================');
 
     });
-
-
-    // =============================
-    // SERVER ERROR HANDLER
-    // =============================
-
-    server.on('error', (err) => {
-
-      console.error('💥 SERVER ERROR');
-      console.error(err);
-
-      shutdown(1);
-
-    });
-
-
-  } catch (error) {
-
-    console.error('❌ BOOT FAILURE');
-    console.error(error);
-
-    shutdown(1);
 
   }
+  catch (err) {
 
+    console.error('BOOT ERROR:', err);
+    process.exit(1);
+
+  }
 }
-
-
-// =============================
-// START SYSTEM
-// =============================
 
 boot();
