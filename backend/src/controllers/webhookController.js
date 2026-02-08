@@ -1,10 +1,11 @@
 const crypto = require('crypto');
+const GitHubService = require('../services/githubService');
 const ScannerService = require('../services/scannerService');
 
 class WebhookController {
 
   // =====================================================
-  // SAFE SIGNATURE VERIFICATION
+  // VERIFY SIGNATURE
   // =====================================================
 
   verifySignature(req) {
@@ -17,70 +18,28 @@ class WebhookController {
       const secret =
         process.env.GITHUB_WEBHOOK_SECRET;
 
-      if (!signature) {
-
-        console.error("❌ Missing signature header");
+      if (!signature || !secret)
         return false;
 
-      }
-
-      if (!secret) {
-
-        console.error("❌ Missing webhook secret");
-        return false;
-
-      }
-
-      // CRITICAL: ensure raw Buffer
       const rawBody =
         Buffer.isBuffer(req.body)
           ? req.body
-          : Buffer.from(req.body);
+          : Buffer.from(JSON.stringify(req.body));
 
-      const expectedSignature =
+      const expected =
         'sha256=' +
         crypto
           .createHmac('sha256', secret)
           .update(rawBody)
           .digest('hex');
 
-      const sigBuffer =
-        Buffer.from(signature);
-
-      const expectedBuffer =
-        Buffer.from(expectedSignature);
-
-      if (sigBuffer.length !== expectedBuffer.length) {
-
-        console.error("❌ Signature length mismatch");
-        return false;
-
-      }
-
-      const valid =
-        crypto.timingSafeEqual(
-          sigBuffer,
-          expectedBuffer
-        );
-
-      if (!valid) {
-
-        console.error("❌ Invalid signature");
-        return false;
-
-      }
-
-      console.log("✅ Signature verified");
-
-      return true;
+      return crypto.timingSafeEqual(
+        Buffer.from(signature),
+        Buffer.from(expected)
+      );
 
     }
-    catch (error) {
-
-      console.error(
-        "❌ Signature verification error:",
-        error
-      );
+    catch {
 
       return false;
 
@@ -90,69 +49,43 @@ class WebhookController {
 
 
   // =====================================================
-  // MAIN WEBHOOK HANDLER
+  // MAIN WEBHOOK
   // =====================================================
 
   async handleGitHubWebhook(req, res) {
 
-    console.log("\n==============================");
-    console.log("🚀 GitHub Webhook Received");
-    console.log("==============================");
-
     try {
 
-      const event =
-        req.headers['x-github-event'];
-
-      console.log("📌 Event:", event);
-
-      // VERIFY SIGNATURE
       if (!this.verifySignature(req)) {
 
-        return res
-          .status(401)
-          .send("Invalid signature");
+        console.error("Invalid webhook signature");
+
+        return res.status(401).send("Unauthorized");
 
       }
 
-      // Parse payload safely
       const payload =
         Buffer.isBuffer(req.body)
           ? JSON.parse(req.body.toString())
           : req.body;
 
-      console.log(
-        "📦 Repository:",
-        payload.repository?.full_name
-      );
+      const event =
+        req.headers['x-github-event'];
 
-      console.log(
-        "⚡ Action:",
-        payload.action
-      );
-
-
-      // HANDLE PR EVENT
       if (event === "pull_request") {
 
         await this.handlePullRequest(payload);
 
       }
 
-      console.log("✅ Webhook processed");
-
       res.status(200).send("OK");
 
     }
     catch (error) {
 
-      console.error(
-        "❌ Webhook fatal error:",
-        error
-      );
+      console.error("Webhook error:", error);
 
-      res.status(500)
-        .send("Internal Server Error");
+      res.status(500).send("Error");
 
     }
 
@@ -160,58 +93,146 @@ class WebhookController {
 
 
   // =====================================================
-  // HANDLE PULL REQUEST
+  // HANDLE PR
   // =====================================================
 
   async handlePullRequest(payload) {
 
-    try {
+    const action =
+      payload.action;
 
-      const {
-        action,
-        pull_request,
-        repository
-      } = payload;
+    if (
+      action !== "opened" &&
+      action !== "synchronize"
+    )
+      return;
 
-      console.log("\n🔍 Pull Request Event");
 
-      console.log("Action:", action);
-      console.log("Repo:", repository.full_name);
-      console.log("PR:", pull_request.number);
+    const installationId =
+      payload.installation.id;
 
-      if (!["opened", "synchronize"].includes(action)) {
+    const owner =
+      payload.repository.owner.login;
 
-        console.log("⏭️ Skipping:", action);
-        return;
+    const repo =
+      payload.repository.name;
+
+    const repoFullName =
+      payload.repository.full_name;
+
+    const prNumber =
+      payload.pull_request.number;
+
+    const branch =
+      payload.pull_request.head.ref;
+
+
+    console.log("Scanning PR:", repoFullName);
+
+
+    // =====================================================
+    // STEP 1 — GET REAL FILES
+    // =====================================================
+
+    const files =
+      await GitHubService.getPullRequestCode(
+        owner,
+        repo,
+        prNumber,
+        branch,
+        installationId
+      );
+
+
+    if (!files.length) {
+
+      console.log("No files to scan");
+
+      return;
+
+    }
+
+
+    // =====================================================
+    // STEP 2 — SCAN FILES
+    // =====================================================
+
+    const results = [];
+
+    for (const file of files) {
+
+      const scan =
+        await ScannerService.scanCode(
+          file.content,
+          file.filename,
+          repoFullName,
+          prNumber
+        );
+
+      results.push(scan);
+
+    }
+
+
+    // =====================================================
+    // STEP 3 — CREATE COMMENT
+    // =====================================================
+
+    const comment =
+      this.formatComment(results);
+
+
+    await GitHubService.createPRComment(
+      owner,
+      repo,
+      prNumber,
+      comment,
+      installationId
+    );
+
+
+    console.log("PR scan completed");
+
+  }
+
+
+  // =====================================================
+  // FORMAT COMMENT
+  // =====================================================
+
+  formatComment(results) {
+
+    let comment =
+      "## 🛡️ ZeroFalse Security Report\n\n";
+
+    let total = 0;
+
+    for (const scan of results) {
+
+      if (!scan.findings)
+        continue;
+
+      for (const finding of scan.findings) {
+
+        total++;
+
+        comment +=
+          `**${finding.severity.toUpperCase()}** — ${finding.type}\n`;
+
+        comment +=
+          `File: ${scan.filename}\n`;
+
+        comment +=
+          `Fix: ${finding.fix}\n\n`;
 
       }
 
-      console.log("🧠 Starting scan...");
-
-      await ScannerService.scanCode(
-
-        `Repository: ${repository.full_name}
-PR: ${pull_request.number}
-Branch: ${pull_request.head.ref}`,
-
-        "pull_request",
-        repository.full_name,
-        pull_request.number,
-        "text"
-
-      );
-
-      console.log("✅ Scan completed");
-
     }
-    catch (error) {
 
-      console.error(
-        "❌ PR handling error:",
-        error
-      );
+    if (total === 0)
+      comment += "✅ No vulnerabilities found.";
 
-    }
+    return comment;
 
   }
 
