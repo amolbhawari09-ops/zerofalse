@@ -12,41 +12,65 @@ const app = express();
 
 
 // ========================================
-// CRITICAL: Healthcheck endpoint (Railway)
+// HEALTHCHECK (Railway required)
 // ========================================
 
 app.get('/health', (req, res) => {
+
   res.status(200).json({
     status: 'OK',
     service: 'zerofalse-backend',
     uptime: process.uptime(),
     timestamp: new Date().toISOString()
   });
+
 });
 
 
 // ========================================
-// CRITICAL: Root endpoint (Railway fallback)
+// ROOT ENDPOINT (Railway fallback)
 // ========================================
 
 app.get('/', (req, res) => {
+
   res.status(200).json({
     status: 'OK',
     message: 'ZeroFalse backend running',
     uptime: process.uptime()
   });
+
 });
 
 
 // ========================================
-// Middleware
+// CORS
 // ========================================
 
 app.use(cors({
   origin: '*',
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization']
+  allowedHeaders: ['Content-Type','Authorization','X-Hub-Signature-256']
 }));
+
+
+// ========================================
+// CRITICAL FIX: RAW BODY ONLY FOR GITHUB WEBHOOK
+// ========================================
+// MUST be before express.json()
+
+app.use('/api/webhook/github',
+
+  express.raw({
+    type: '*/*',
+    limit: '10mb'
+  })
+
+);
+
+
+// ========================================
+// NORMAL JSON PARSER FOR OTHER ROUTES
+// ========================================
 
 app.use(express.json({
   limit: '10mb'
@@ -59,14 +83,14 @@ app.use(express.urlencoded({
 
 
 // ========================================
-// API Routes
+// API ROUTES
 // ========================================
 
 app.use('/api', routes);
 
 
 // ========================================
-// Static frontend (optional)
+// STATIC FRONTEND (optional)
 // ========================================
 
 const frontendPath = path.join(__dirname, '../../frontend');
@@ -76,14 +100,16 @@ if (fs.existsSync(frontendPath)) {
   app.use(express.static(frontendPath));
 
   app.get('/app', (req, res) => {
+
     res.sendFile(path.join(frontendPath, 'index.html'));
+
   });
 
 }
 
 
 // ========================================
-// 404 Handler
+// 404 HANDLER
 // ========================================
 
 app.use((req, res) => {
@@ -97,12 +123,15 @@ app.use((req, res) => {
 
 
 // ========================================
-// Global Error Handler
+// GLOBAL ERROR HANDLER
 // ========================================
 
 app.use((err, req, res, next) => {
 
-  logger.error('SERVER ERROR:', err);
+  logger.error('SERVER ERROR:', {
+    message: err.message,
+    stack: err.stack
+  });
 
   res.status(500).json({
     error: 'Internal Server Error'
