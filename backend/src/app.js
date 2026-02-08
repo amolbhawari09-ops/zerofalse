@@ -17,16 +17,7 @@ const app = express();
 app.use(cors());
 
 /*
-CRITICAL: GitHub webhook signature verification requires RAW body.
-This MUST be before express.json()
-*/
-app.use(express.raw({
-  type: 'application/json',
-  limit: '10mb'
-}));
-
-/*
-JSON parser for normal API routes
+Normal JSON parser for all routes
 */
 app.use(express.json({
   limit: '10mb'
@@ -39,7 +30,7 @@ app.use(express.urlencoded({
 
 
 // =====================================================
-// HEALTH CHECK ROUTE
+// HEALTH CHECK ROUTE (CRITICAL FOR RAILWAY)
 // =====================================================
 
 app.get('/health', (req, res) => {
@@ -47,6 +38,7 @@ app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
     service: 'ZeroFalse Backend',
+    uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'production'
   });
@@ -55,32 +47,36 @@ app.get('/health', (req, res) => {
 
 
 // =====================================================
+// GITHUB WEBHOOK RAW BODY (ONLY THIS ROUTE)
+// =====================================================
+
+app.use('/api/webhook/github',
+  express.raw({ type: 'application/json' })
+);
+
+
+// =====================================================
 // API ROUTES
 // =====================================================
 
-/*
-All routes registered here:
-
-/api/webhook/github
-/api/scan
-/api/feedback
-*/
 app.use('/api', routes);
 
 
 // =====================================================
-// STATIC FRONTEND (OPTIONAL)
+// STATIC FRONTEND (SAFE VERSION)
 // =====================================================
 
 const frontendPath = path.join(__dirname, '../../frontend');
 
-app.use(express.static(frontendPath));
+if (require('fs').existsSync(frontendPath)) {
 
-app.get('/', (req, res) => {
+  app.use(express.static(frontendPath));
 
-  res.sendFile(path.join(frontendPath, 'index.html'));
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+  });
 
-});
+}
 
 
 // =====================================================
@@ -115,7 +111,7 @@ app.use((req, res) => {
 
 
 // =====================================================
-// EXPORT APP
+// EXPORT
 // =====================================================
 
 module.exports = app;
