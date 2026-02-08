@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const GitHubService = require('../services/githubService');
 const ScannerService = require('../services/scannerService');
+const logger = require('../utils/logger');
 
 class WebhookController {
 
@@ -39,7 +40,9 @@ class WebhookController {
       );
 
     }
-    catch {
+    catch (err) {
+
+      logger.error("Signature verification failed", err);
 
       return false;
 
@@ -49,7 +52,7 @@ class WebhookController {
 
 
   // =====================================================
-  // MAIN WEBHOOK
+  // MAIN WEBHOOK ENTRY
   // =====================================================
 
   async handleGitHubWebhook(req, res) {
@@ -58,7 +61,7 @@ class WebhookController {
 
       if (!this.verifySignature(req)) {
 
-        console.error("Invalid webhook signature");
+        logger.warn("Invalid webhook signature");
 
         return res.status(401).send("Unauthorized");
 
@@ -72,6 +75,8 @@ class WebhookController {
       const event =
         req.headers['x-github-event'];
 
+      logger.info("GitHub event received:", event);
+
       if (event === "pull_request") {
 
         await this.handlePullRequest(payload);
@@ -83,7 +88,7 @@ class WebhookController {
     }
     catch (error) {
 
-      console.error("Webhook error:", error);
+      logger.error("Webhook fatal error", error);
 
       res.status(500).send("Error");
 
@@ -93,20 +98,20 @@ class WebhookController {
 
 
   // =====================================================
-  // HANDLE PR
+  // HANDLE PULL REQUEST EVENT
   // =====================================================
 
   async handlePullRequest(payload) {
 
-    const action =
-      payload.action;
+    const action = payload.action;
 
-    if (
-      action !== "opened" &&
-      action !== "synchronize"
-    )
+    if (!["opened", "synchronize"].includes(action)) {
+
+      logger.info("Skipping PR action:", action);
+
       return;
 
+    }
 
     const installationId =
       payload.installation.id;
@@ -123,30 +128,37 @@ class WebhookController {
     const prNumber =
       payload.pull_request.number;
 
-    const branch =
-      payload.pull_request.head.ref;
+    const ref =
+      payload.pull_request.head.sha;
 
-
-    console.log("Scanning PR:", repoFullName);
+    logger.info(`Scanning PR ${repoFullName} #${prNumber}`);
 
 
     // =====================================================
-    // STEP 1 — GET REAL FILES
+    // STEP 1 — GET INSTALLATION TOKEN
     // =====================================================
 
-    const files =
-      await GitHubService.getPullRequestCode(
-        owner,
-        repo,
-        prNumber,
-        branch,
+    const token =
+      await GitHubService.getInstallationToken(
         installationId
       );
 
 
+    // =====================================================
+    // STEP 2 — GET FILE LIST
+    // =====================================================
+
+    const files =
+      await GitHubService.getPullRequestFiles(
+        owner,
+        repo,
+        prNumber,
+        token
+      );
+
     if (!files.length) {
 
-      console.log("No files to scan");
+      logger.info("No files to scan");
 
       return;
 
@@ -154,19 +166,32 @@ class WebhookController {
 
 
     // =====================================================
-    // STEP 2 — SCAN FILES
+    // STEP 3 — DOWNLOAD FILE CONTENT + SCAN
     // =====================================================
 
     const results = [];
 
     for (const file of files) {
 
+      if (file.status === "removed")
+        continue;
+
+      const content =
+        await GitHubService.getFileContent(
+          owner,
+          repo,
+          file.filename,
+          ref,
+          token
+        );
+
       const scan =
         await ScannerService.scanCode(
-          file.content,
+          content,
           file.filename,
           repoFullName,
-          prNumber
+          prNumber,
+          "javascript"
         );
 
       results.push(scan);
@@ -175,23 +200,21 @@ class WebhookController {
 
 
     // =====================================================
-    // STEP 3 — CREATE COMMENT
+    // STEP 4 — COMMENT ON PR
     // =====================================================
 
     const comment =
       this.formatComment(results);
-
 
     await GitHubService.createPRComment(
       owner,
       repo,
       prNumber,
       comment,
-      installationId
+      token
     );
 
-
-    console.log("PR scan completed");
+    logger.info("PR scan completed");
 
   }
 
@@ -217,13 +240,15 @@ class WebhookController {
         total++;
 
         comment +=
-          `**${finding.severity.toUpperCase()}** — ${finding.type}\n`;
+          `**${finding.severity?.toUpperCase() || "UNKNOWN"}** — ${finding.type}\n`;
 
         comment +=
           `File: ${scan.filename}\n`;
 
-        comment +=
-          `Fix: ${finding.fix}\n\n`;
+        if (finding.fix)
+          comment += `Fix: ${finding.fix}\n`;
+
+        comment += "\n";
 
       }
 
