@@ -10,36 +10,105 @@ const logger = require('./utils/logger');
 
 const app = express();
 
-// Health check FIRST - Keep it simple!
+
+// ========================================
+// CRITICAL: Healthcheck endpoint (Railway)
+// ========================================
+
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', time: Date.now() });
+  res.status(200).json({
+    status: 'OK',
+    service: 'zerofalse-backend',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
 });
 
-// Regular middleware
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
 
-// API routes
+// ========================================
+// CRITICAL: Root endpoint (Railway fallback)
+// ========================================
+
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    message: 'ZeroFalse backend running',
+    uptime: process.uptime()
+  });
+});
+
+
+// ========================================
+// Middleware
+// ========================================
+
+app.use(cors({
+  origin: '*',
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization']
+}));
+
+app.use(express.json({
+  limit: '10mb'
+}));
+
+app.use(express.urlencoded({
+  extended: true,
+  limit: '10mb'
+}));
+
+
+// ========================================
+// API Routes
+// ========================================
+
 app.use('/api', routes);
 
-// Static files
+
+// ========================================
+// Static frontend (optional)
+// ========================================
+
 const frontendPath = path.join(__dirname, '../../frontend');
+
 if (fs.existsSync(frontendPath)) {
+
   app.use(express.static(frontendPath));
-  app.get('/', (req, res) => {
+
+  app.get('/app', (req, res) => {
     res.sendFile(path.join(frontendPath, 'index.html'));
   });
+
 }
 
-// 404 handler
+
+// ========================================
+// 404 Handler
+// ========================================
+
 app.use((req, res) => {
-  res.status(404).json({ error: 'Not found' });
+
+  res.status(404).json({
+    error: 'Route not found',
+    path: req.originalUrl
+  });
+
 });
 
-// Error handler
+
+// ========================================
+// Global Error Handler
+// ========================================
+
 app.use((err, req, res, next) => {
-  logger.error('Error:', err.message);
-  res.status(500).json({ error: 'Server error' });
+
+  logger.error('SERVER ERROR:', err);
+
+  res.status(500).json({
+    error: 'Internal Server Error'
+  });
+
 });
+
 
 module.exports = app;
