@@ -1,5 +1,3 @@
-// backend/src/server.js
-
 require('dotenv').config();
 
 const http = require('http');
@@ -15,27 +13,31 @@ let isShuttingDown = false;
 
 
 /**
- * Boot function (Railway-safe)
+ * CRITICAL FIX — keeps Railway container alive
  */
+setInterval(() => {
+
+  // do nothing, just keep event loop active
+
+}, 1000 * 60 * 10);
+
+
+
 async function boot() {
 
   try {
 
     logger.info('🚀 Booting ZeroFalse...');
 
-    // Step 1: Connect MongoDB
-    logger.info('📦 Connecting to MongoDB...');
     await connectDatabase();
 
     logger.info('✅ Database ready');
 
-    // Step 2: Create HTTP server
     server = http.createServer(app);
 
-    // Step 3: Start listening (await ensures stability)
     await new Promise((resolve, reject) => {
 
-      server.listen(PORT, HOST, (err) => {
+      server.listen(PORT, HOST, err => {
 
         if (err) return reject(err);
 
@@ -45,19 +47,13 @@ async function boot() {
 
     });
 
-    logger.info('================================');
-    logger.info('🛡️ ZeroFalse LIVE');
-    logger.info(`🌐 Host: ${HOST}`);
-    logger.info(`📡 Port: ${PORT}`);
-    logger.info(`📊 Env: ${process.env.NODE_ENV || 'production'}`);
-    logger.info('================================');
+    logger.info(`🛡️ Server LIVE on ${HOST}:${PORT}`);
 
-  } catch (error) {
+  }
 
-    logger.error('❌ BOOT FAILED', {
-      message: error.message,
-      stack: error.stack
-    });
+  catch (error) {
+
+    logger.error('BOOT FAILED', error);
 
     process.exit(1);
 
@@ -66,67 +62,30 @@ async function boot() {
 }
 
 
-/**
- * Prevent Railway idle shutdown
- * THIS IS THE KEY FIX
- */
-process.stdin.resume();
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
 
-
-/**
- * Graceful shutdown
- */
-async function shutdown(signal) {
+function shutdown(signal) {
 
   if (isShuttingDown) return;
 
   isShuttingDown = true;
 
-  logger.warn(`⚠️ ${signal} received. Shutting down...`);
+  logger.warn(`Shutdown signal: ${signal}`);
 
-  try {
+  if (server) {
 
-    if (server) {
+    server.close(() => {
 
-      await new Promise(resolve =>
-        server.close(resolve)
-      );
+      logger.info('Server closed');
 
-      logger.info('✅ HTTP server closed');
+      process.exit(0);
 
-    }
-
-  } catch (err) {
-
-    logger.error('Shutdown error', err);
+    });
 
   }
-
-  process.exit(0);
 
 }
 
 
-/**
- * Crash protection
- */
-process.on('uncaughtException', err => {
-
-  logger.error('💥 Uncaught Exception', err);
-
-});
-
-process.on('unhandledRejection', err => {
-
-  logger.error('💥 Unhandled Rejection', err);
-
-});
-
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
-
-
-/**
- * Start system
- */
 boot();
