@@ -6,43 +6,56 @@ const logger = require('../utils/logger');
 class WebhookController {
 
   // =====================================================
-  // VERIFY SIGNATURE
+  // VERIFY SIGNATURE (FIXED + SAFE)
   // =====================================================
 
   verifySignature(req) {
 
     try {
 
-      const signature =
-        req.headers['x-hub-signature-256'];
+      const signature = req.headers['x-hub-signature-256'];
+      const secret = process.env.GITHUB_WEBHOOK_SECRET;
 
-      const secret =
-        process.env.GITHUB_WEBHOOK_SECRET;
-
-      if (!signature || !secret)
+      if (!signature) {
+        logger.warn("Missing signature header");
         return false;
+      }
 
-      const rawBody =
-        Buffer.isBuffer(req.body)
-          ? req.body
-          : Buffer.from(JSON.stringify(req.body));
+      if (!secret) {
+        logger.warn("Missing webhook secret in env");
+        return false;
+      }
 
-      const expected =
+      // MUST use raw buffer exactly as received
+      const rawBody = req.body;
+
+      if (!Buffer.isBuffer(rawBody)) {
+        logger.error("Body is not raw buffer");
+        return false;
+      }
+
+      const expectedSignature =
         'sha256=' +
         crypto
           .createHmac('sha256', secret)
           .update(rawBody)
           .digest('hex');
 
+      const sigBuffer = Buffer.from(signature);
+      const expectedBuffer = Buffer.from(expectedSignature);
+
+      if (sigBuffer.length !== expectedBuffer.length)
+        return false;
+
       return crypto.timingSafeEqual(
-        Buffer.from(signature),
-        Buffer.from(expected)
+        sigBuffer,
+        expectedBuffer
       );
 
     }
     catch (err) {
 
-      logger.error("Signature verification failed", err);
+      logger.error("Signature verification error:", err);
 
       return false;
 
@@ -52,30 +65,31 @@ class WebhookController {
 
 
   // =====================================================
-  // MAIN WEBHOOK ENTRY
+  // MAIN ENTRY
   // =====================================================
 
   async handleGitHubWebhook(req, res) {
 
     try {
 
+      logger.info("📩 GitHub webhook received");
+
+      // VERIFY SIGNATURE
       if (!this.verifySignature(req)) {
 
-        logger.warn("Invalid webhook signature");
+        logger.warn("❌ Invalid webhook signature");
 
         return res.status(401).send("Unauthorized");
 
       }
 
-      const payload =
-        Buffer.isBuffer(req.body)
-          ? JSON.parse(req.body.toString())
-          : req.body;
+      // Parse payload safely
+      const payload = JSON.parse(req.body.toString());
 
-      const event =
-        req.headers['x-github-event'];
+      const event = req.headers['x-github-event'];
 
-      logger.info("GitHub event received:", event);
+      logger.info(`GitHub event: ${event}`);
+      logger.info(`Action: ${payload.action}`);
 
       if (event === "pull_request") {
 
@@ -83,14 +97,14 @@ class WebhookController {
 
       }
 
-      res.status(200).send("OK");
+      return res.status(200).send("OK");
 
     }
     catch (error) {
 
-      logger.error("Webhook fatal error", error);
+      logger.error("Webhook fatal error:", error);
 
-      res.status(500).send("Error");
+      return res.status(500).send("Webhook error");
 
     }
 
@@ -98,123 +112,150 @@ class WebhookController {
 
 
   // =====================================================
-  // HANDLE PULL REQUEST EVENT
+  // HANDLE PULL REQUEST
   // =====================================================
 
   async handlePullRequest(payload) {
 
-    const action = payload.action;
+    try {
 
-    if (!["opened", "synchronize"].includes(action)) {
+      const action = payload.action;
 
-      logger.info("Skipping PR action:", action);
+      // Only scan when PR opened or updated
+      if (!["opened", "synchronize"].includes(action)) {
 
-      return;
+        logger.info(`Skipping action: ${action}`);
+        return;
 
-    }
+      }
 
-    const installationId =
-      payload.installation.id;
+      const installationId = payload.installation?.id;
 
-    const owner =
-      payload.repository.owner.login;
+      if (!installationId)
+        throw new Error("Missing installation ID");
 
-    const repo =
-      payload.repository.name;
+      const owner = payload.repository.owner.login;
+      const repo = payload.repository.name;
+      const repoFullName = payload.repository.full_name;
 
-    const repoFullName =
-      payload.repository.full_name;
+      const prNumber = payload.pull_request.number;
+      const ref = payload.pull_request.head.sha;
 
-    const prNumber =
-      payload.pull_request.number;
+      logger.info(`🔍 Scanning PR ${repoFullName} #${prNumber}`);
 
-    const ref =
-      payload.pull_request.head.sha;
+      // =====================================================
+      // STEP 1: INSTALLATION TOKEN
+      // =====================================================
 
-    logger.info(`Scanning PR ${repoFullName} #${prNumber}`);
+      const token =
+        await GitHubService.getInstallationToken(
+          installationId
+        );
 
-
-    // =====================================================
-    // STEP 1 — GET INSTALLATION TOKEN
-    // =====================================================
-
-    const token =
-      await GitHubService.getInstallationToken(
-        installationId
-      );
+      if (!token)
+        throw new Error("Failed to get installation token");
 
 
-    // =====================================================
-    // STEP 2 — GET FILE LIST
-    // =====================================================
+      // =====================================================
+      // STEP 2: FILE LIST
+      // =====================================================
 
-    const files =
-      await GitHubService.getPullRequestFiles(
-        owner,
-        repo,
-        prNumber,
-        token
-      );
-
-    if (!files.length) {
-
-      logger.info("No files to scan");
-
-      return;
-
-    }
-
-
-    // =====================================================
-    // STEP 3 — DOWNLOAD FILE CONTENT + SCAN
-    // =====================================================
-
-    const results = [];
-
-    for (const file of files) {
-
-      if (file.status === "removed")
-        continue;
-
-      const content =
-        await GitHubService.getFileContent(
+      const files =
+        await GitHubService.getPullRequestFiles(
           owner,
           repo,
-          file.filename,
-          ref,
+          prNumber,
           token
         );
 
-      const scan =
-        await ScannerService.scanCode(
-          content,
-          file.filename,
-          repoFullName,
-          prNumber,
-          "javascript"
-        );
+      if (!files || files.length === 0) {
 
-      results.push(scan);
+        logger.info("No files found in PR");
+
+        return;
+
+      }
+
+      logger.info(`Found ${files.length} files`);
+
+
+      // =====================================================
+      // STEP 3: SCAN FILES
+      // =====================================================
+
+      const results = [];
+
+      for (const file of files) {
+
+        try {
+
+          if (file.status === "removed")
+            continue;
+
+          logger.info(`Scanning file: ${file.filename}`);
+
+          const content =
+            await GitHubService.getFileContent(
+              owner,
+              repo,
+              file.filename,
+              ref,
+              token
+            );
+
+          if (!content)
+            continue;
+
+          const scanResult =
+            await ScannerService.scanCode(
+              content,
+              file.filename,
+              repoFullName,
+              prNumber,
+              "javascript"
+            );
+
+          results.push({
+            filename: file.filename,
+            findings: scanResult.findings || []
+          });
+
+        }
+        catch (fileError) {
+
+          logger.error(
+            `File scan error: ${file.filename}`,
+            fileError
+          );
+
+        }
+
+      }
+
+
+      // =====================================================
+      // STEP 4: COMMENT
+      // =====================================================
+
+      const comment =
+        this.formatComment(results);
+
+      await GitHubService.createPRComment(
+        owner,
+        repo,
+        prNumber,
+        comment,
+        token
+      );
+
+      logger.info("✅ PR comment posted");
 
     }
+    catch (error) {
 
+      logger.error("PR processing error:", error);
 
-    // =====================================================
-    // STEP 4 — COMMENT ON PR
-    // =====================================================
-
-    const comment =
-      this.formatComment(results);
-
-    await GitHubService.createPRComment(
-      owner,
-      repo,
-      prNumber,
-      comment,
-      token
-    );
-
-    logger.info("PR scan completed");
+    }
 
   }
 
@@ -226,36 +267,57 @@ class WebhookController {
   formatComment(results) {
 
     let comment =
-      "## 🛡️ ZeroFalse Security Report\n\n";
+`## 🛡️ ZeroFalse Security Report
 
-    let total = 0;
+Automated scan results:
 
-    for (const scan of results) {
+`;
 
-      if (!scan.findings)
+    let totalFindings = 0;
+
+    for (const result of results) {
+
+      if (!result.findings || result.findings.length === 0)
         continue;
 
-      for (const finding of scan.findings) {
+      comment += `### ${result.filename}\n`;
 
-        total++;
+      for (const finding of result.findings) {
+
+        totalFindings++;
 
         comment +=
-          `**${finding.severity?.toUpperCase() || "UNKNOWN"}** — ${finding.type}\n`;
+`- **${finding.severity || "UNKNOWN"}**
+  - Type: ${finding.type || "Unknown"}
+  - Fix: ${finding.fix || "No fix provided"}
 
-        comment +=
-          `File: ${scan.filename}\n`;
-
-        if (finding.fix)
-          comment += `Fix: ${finding.fix}\n`;
-
-        comment += "\n";
+`;
 
       }
 
     }
 
-    if (total === 0)
-      comment += "✅ No vulnerabilities found.";
+    if (totalFindings === 0) {
+
+      comment +=
+`✅ No vulnerabilities found.
+Your code is secure.
+`;
+
+    }
+    else {
+
+      comment +=
+`⚠️ Total issues found: ${totalFindings}
+`;
+
+    }
+
+    comment +=
+`
+---
+ZeroFalse Security Bot
+`;
 
     return comment;
 
