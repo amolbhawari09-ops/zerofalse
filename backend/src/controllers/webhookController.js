@@ -27,10 +27,6 @@ function shouldScanFile(filename) {
 
 class WebhookController {
 
-  // =====================================================
-  // VERIFY SIGNATURE
-  // =====================================================
-
   verifySignature(req) {
     try {
       const signature = req.headers['x-hub-signature-256'];
@@ -71,10 +67,6 @@ class WebhookController {
     }
   }
 
-  // =====================================================
-  // MAIN WEBHOOK ENTRY
-  // =====================================================
-
   async handleGitHubWebhook(req, res) {
     logger.info("📩 GitHub webhook received");
 
@@ -93,49 +85,49 @@ class WebhookController {
       }
 
       const event = req.headers['x-github-event'];
-      logger.info(`Event: ${event}, Action: ${payload.action}`);
+      logger.info(`Event: ${event}, Action: ${payload?.action}`);
 
       if (event === "pull_request") {
-        await this.safeHandlePullRequest(payload);
+        // DEBUG: Don't use safe wrapper, let errors bubble up
+        logger.info("🔥 About to handle PR - entering handler");
+        await this.handlePullRequest(payload);
+        logger.info("✅ PR handler completed successfully");
       }
 
       return res.status(200).send("OK");
 
     } catch (fatalError) {
-      logger.error("Webhook fatal crash", fatalError);
-      return res.status(200).send("Recovered");
+      // DEBUG: Log full error
+      logger.error("💀 WEBHOOK FATAL ERROR:");
+      logger.error(fatalError.message);
+      logger.error(fatalError.stack);
+      return res.status(200).send("Error: " + fatalError.message);
     }
   }
-
-  // =====================================================
-  // SAFE WRAPPER
-  // =====================================================
-
-  async safeHandlePullRequest(payload) {
-    try {
-      await this.handlePullRequest(payload);
-    } catch (err) {
-      logger.error("PR handler crash:", err.message);
-      logger.error(err.stack);
-    }
-  }
-
-  // =====================================================
-  // MAIN PR HANDLER
-  // =====================================================
 
   async handlePullRequest(payload) {
+    logger.info("🚀 PR HANDLER STARTED");
+
     const action = payload.action;
+    logger.info(`Action: ${action}`);
 
     if (!["opened", "synchronize"].includes(action)) {
       logger.info(`Skipping action: ${action}`);
       return;
     }
 
+    // DEBUG: Check all required fields
+    logger.info("Checking payload fields...");
+    logger.info(`repository: ${!!payload.repository}`);
+    logger.info(`repository.owner: ${!!payload.repository?.owner}`);
+    logger.info(`installation: ${!!payload.installation}`);
+    logger.info(`pull_request: ${!!payload.pull_request}`);
+
     const installationId = payload.installation?.id;
     if (!installationId) {
       throw new Error("Missing installation ID");
     }
+    logger.info(`Installation ID: ${installationId}`);
 
     const owner = payload.repository.owner.login;
     const repo = payload.repository.name;
@@ -143,47 +135,42 @@ class WebhookController {
     const prNumber = payload.pull_request.number;
     const ref = payload.pull_request.head.sha;
 
-    logger.info("========== PR SCAN START ==========");
-    logger.info(`Repository: ${repoFullName}`);
-    logger.info(`PR #: ${prNumber}`);
-    logger.info(`Installation ID: ${installationId}`);
+    logger.info(`Repo: ${repoFullName}, PR: #${prNumber}`);
 
     // =====================================================
-    // GET INSTALLATION TOKEN
+    // GET TOKEN
     // =====================================================
 
-    const token = await GitHubService.getInstallationToken(installationId);
-    
-    if (!token) {
-      throw new Error("Installation token failed");
+    logger.info("🔑 Getting installation token...");
+    let token;
+    try {
+      token = await GitHubService.getInstallationToken(installationId);
+      logger.info(`✅ Token acquired: ${token.substring(0, 10)}...`);
+    } catch (tokenErr) {
+      logger.error("❌ Token failed:", tokenErr.message);
+      throw tokenErr;
     }
 
-    logger.info("Token acquired successfully");
-
     // =====================================================
-    // GET FILE LIST
+    // GET FILES
     // =====================================================
 
-    const files = await GitHubService.getPullRequestFiles(
-      owner,
-      repo,
-      prNumber,
-      token
-    );
-
-    if (!files || files.length === 0) {
-      logger.info("No files found in PR");
-      return;
+    logger.info("📁 Getting PR files...");
+    let files;
+    try {
+      files = await GitHubService.getPullRequestFiles(owner, repo, prNumber, token);
+      logger.info(`✅ Found ${files.length} files`);
+    } catch (filesErr) {
+      logger.error("❌ Get files failed:", filesErr.message);
+      throw filesErr;
     }
 
-    logger.info(`Found ${files.length} total files`);
-
-    // Filter to code files only
+    // Filter to code files
     const codeFiles = files.filter(f => shouldScanFile(f.filename));
     logger.info(`Code files to scan: ${codeFiles.length}`);
 
     if (codeFiles.length === 0) {
-      logger.info("No code files to scan");
+      logger.info("No code files to scan - skipping");
       return;
     }
 
@@ -196,16 +183,10 @@ class WebhookController {
 
     for (const file of codeFiles) {
       try {
-        if (file.status === "removed") continue;
-
-        logger.info(`Scanning: ${file.filename}`);
+        logger.info(`🔍 Scanning: ${file.filename}`);
 
         const content = await GitHubService.getFileContent(
-          owner,
-          repo,
-          file.filename,
-          ref,
-          token
+          owner, repo, file.filename, ref, token
         );
 
         if (!content) {
@@ -213,14 +194,14 @@ class WebhookController {
           continue;
         }
 
-        const language = this.getLanguage(file.filename);
-        
+        logger.info(`Content length: ${content.length} chars`);
+
         const scan = await ScannerService.scanCode(
           content,
           file.filename,
           repoFullName,
           prNumber,
-          language
+          'javascript'
         );
 
         const findingCount = scan?.findings?.length || 0;
@@ -228,78 +209,42 @@ class WebhookController {
 
         results.push({
           filename: file.filename,
-          findings: scan?.findings || [],
-          scanId: scan?.id
+          findings: scan?.findings || []
         });
 
-        logger.info(`Found ${findingCount} issues in ${file.filename}`);
+        logger.info(`✅ Scanned ${file.filename}: ${findingCount} findings`);
 
       } catch (fileErr) {
-        logger.error(`File scan failed: ${file.filename}`, fileErr.message);
+        logger.error(`❌ File scan failed ${file.filename}:`, fileErr.message);
+        // Continue with other files
       }
     }
 
     logger.info(`Scan complete: ${results.length} files, ${totalFindings} total findings`);
 
     // =====================================================
-    // POST COMMENT (FIXED - PASS TOKEN)
+    // POST COMMENT
     // =====================================================
 
     try {
       const comment = this.formatComment(results, totalFindings);
-      
-      logger.info("Posting PR comment...");
+      logger.info("💬 Posting comment...");
+      logger.info(`Comment length: ${comment.length} chars`);
 
-      // FIXED: Pass token, not installationId
       await GitHubService.createPRComment(
-        owner,
-        repo,
-        prNumber,
-        comment,
-        token  // ✅ CORRECT: passing token
+        owner, repo, prNumber, comment, token
       );
 
-      logger.info("✅ PR comment posted successfully");
+      logger.info("✅ Comment posted successfully");
 
     } catch (commentErr) {
       logger.error("❌ Comment posting failed:", commentErr.message);
-      // Don't throw - prevent webhook crash
+      logger.error(commentErr.stack);
+      throw commentErr;
     }
 
-    logger.info("========== PR SCAN COMPLETE ==========");
+    logger.info("🎉 PR HANDLER COMPLETED");
   }
-
-  // =====================================================
-  // GET LANGUAGE FROM FILENAME
-  // =====================================================
-
-  getLanguage(filename) {
-    const ext = filename.split('.').pop().toLowerCase();
-    
-    const langMap = {
-      'py': 'python',
-      'java': 'java',
-      'go': 'go',
-      'rb': 'ruby',
-      'php': 'php',
-      'c': 'c',
-      'cpp': 'cpp',
-      'cs': 'csharp',
-      'swift': 'swift',
-      'kt': 'kotlin',
-      'rs': 'rust',
-      'scala': 'scala',
-      'ts': 'typescript',
-      'tsx': 'typescript',
-      'jsx': 'javascript'
-    };
-
-    return langMap[ext] || 'javascript';
-  }
-
-  // =====================================================
-  // COMMENT FORMATTER
-  // =====================================================
 
   formatComment(results, totalFindings) {
     if (totalFindings === 0) {
@@ -307,10 +252,8 @@ class WebhookController {
 
 ✅ **No vulnerabilities found** in this PR.
 
-All scanned files passed security checks.
-
 ---
-*Powered by [ZeroFalse](https://zerofalse.vercel.app) - AI security for AI-generated code*`;
+*Powered by [ZeroFalse](https://zerofalse.vercel.app)*`;
     }
 
     let comment = `## 🛡️ ZeroFalse Security Scan
@@ -324,9 +267,7 @@ All scanned files passed security checks.
 
       comment += `### 📄 \`${result.filename}\`\n\n`;
 
-      for (let i = 0; i < result.findings.length; i++) {
-        const f = result.findings[i];
-        
+      for (const f of result.findings) {
         const severityEmoji = {
           'critical': '🔴',
           'high': '🟠',
@@ -334,21 +275,13 @@ All scanned files passed security checks.
           'low': '🔵'
         }[f.severity] || '⚪';
 
-        comment += `${severityEmoji} **${f.severity?.toUpperCase() || 'UNKNOWN'}**: ${f.type || 'Unknown Issue'}\n`;
-        comment += `- **Line ${f.line || '?'}**: ${f.description || 'No description'}\n`;
-        
-        if (f.fix) {
-          comment += `- **Suggested Fix**:\n  \`\`\`\n  ${f.fix.replace(/\n/g, '\n  ')}\n  \`\`\`\n`;
-        }
-        
-        comment += `\n`;
+        comment += `${severityEmoji} **${f.severity?.toUpperCase() || 'UNKNOWN'}**: ${f.type || 'Unknown'}\n`;
+        comment += `- Line ${f.line || '?'}: ${f.description || 'No description'}\n\n`;
       }
     }
 
     comment += `---
-🔒 **Action Required**: Please review these findings before merging.
-
-*Powered by [ZeroFalse](https://zerofalse.vercel.app) - AI security for AI-generated code*`;
+*Powered by [ZeroFalse](https://zerofalse.vercel.app)*`;
 
     return comment;
   }
