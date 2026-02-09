@@ -8,12 +8,14 @@ const logger = require('../utils/logger');
 class ScannerService {
 
   constructor() {
+
     this.db = null;
     this.githubToken = process.env.GITHUB_TOKEN || null;
 
     if (!this.githubToken) {
       logger.warn("⚠️ GITHUB_TOKEN not set — PR scanning limited");
     }
+
   }
 
   // =====================================================
@@ -25,14 +27,15 @@ class ScannerService {
 
       if (!this.db) {
 
-        logger.info("📦 Initializing database...");
+        logger.info("📦 Initializing database connection...");
         this.db = await connectDatabase();
 
       }
 
       return this.db;
 
-    } catch (error) {
+    }
+    catch (error) {
 
       logger.error("Database connection failed:", error.message);
       return null;
@@ -42,7 +45,7 @@ class ScannerService {
   }
 
   // =====================================================
-  // GET ALL SCANS  ⭐ FIXES YOUR ERROR
+  // GET ALL SCANS
   // =====================================================
   async getAllScans(limit = 50) {
 
@@ -61,10 +64,10 @@ class ScannerService {
 
       }
 
-      // fallback memory
       return memoryStore.scans
-        .sort((a, b) =>
-          new Date(b.timestamp) - new Date(a.timestamp)
+        .sort(
+          (a, b) =>
+            new Date(b.timestamp) - new Date(a.timestamp)
         )
         .slice(0, limit);
 
@@ -79,7 +82,7 @@ class ScannerService {
   }
 
   // =====================================================
-  // GET SINGLE SCAN BY ID
+  // GET SINGLE SCAN
   // =====================================================
   async getScanById(scanId) {
 
@@ -95,8 +98,9 @@ class ScannerService {
 
       }
 
-      return memoryStore.scans
-        .find(s => s.id === scanId);
+      return memoryStore.scans.find(
+        scan => scan.id === scanId
+      );
 
     }
     catch (error) {
@@ -109,9 +113,82 @@ class ScannerService {
   }
 
   // =====================================================
+  // GET STATS (FIXES YOUR ERROR)
+  // =====================================================
+  async getStats() {
+
+    try {
+
+      const db = await this.getDbSafe();
+
+      let scans = [];
+
+      if (db) {
+
+        scans = await db
+          .collection("scans")
+          .find({})
+          .toArray();
+
+      }
+      else {
+
+        scans = memoryStore.scans;
+
+      }
+
+      const totalScans = scans.length;
+
+      const completedScans =
+        scans.filter(s => s.status === "completed").length;
+
+      const failedScans =
+        scans.filter(s => s.status === "failed").length;
+
+      const totalFindings =
+        scans.reduce(
+          (sum, scan) =>
+            sum + (scan.findings?.length || 0),
+          0
+        );
+
+      return {
+
+        totalScans,
+        completedScans,
+        failedScans,
+        totalFindings
+
+      };
+
+    }
+    catch (error) {
+
+      logger.error("getStats failed:", error.message);
+
+      return {
+
+        totalScans: 0,
+        completedScans: 0,
+        failedScans: 0,
+        totalFindings: 0
+
+      };
+
+    }
+
+  }
+
+  // =====================================================
   // SCAN RAW CODE (Frontend scan button uses this)
   // =====================================================
-  async scanCode(code, filename = "input.js", repo = "manual", prNumber = null, language = "javascript") {
+  async scanCode(
+    code,
+    filename = "input.js",
+    repo = "manual",
+    prNumber = null,
+    language = "javascript"
+  ) {
 
     const scanId = generateId();
     const startTime = Date.now();
@@ -130,20 +207,30 @@ class ScannerService {
       try {
 
         const llmResult =
-          await LLMService.analyzeCode(code, filename, language);
+          await LLMService.analyzeCode(
+            code,
+            filename,
+            language
+          );
 
-        llmFindings = llmResult.findings || [];
+        llmFindings = llmResult?.findings || [];
 
       }
       catch (llmError) {
 
-        logger.warn("LLM scan failed:", llmError.message);
+        logger.warn(
+          "LLM scan failed:",
+          llmError.message
+        );
 
       }
 
       // Merge findings
       const mergedFindings =
-        this.mergeFindings(patternFindings, llmFindings);
+        this.mergeFindings(
+          patternFindings,
+          llmFindings
+        );
 
       const scan = {
 
@@ -157,7 +244,6 @@ class ScannerService {
         codeHash: hashData(code),
 
         findings: mergedFindings,
-
         patternFindings,
         llmFindings,
 
@@ -225,7 +311,10 @@ class ScannerService {
   async scanPullRequest(repoFullName, prNumber) {
 
     const files =
-      await this.fetchPRFiles(repoFullName, prNumber);
+      await this.fetchPRFiles(
+        repoFullName,
+        prNumber
+      );
 
     const results = [];
 
@@ -274,7 +363,11 @@ class ScannerService {
     const merged = [...llmFindings];
 
     const seen =
-      new Set(llmFindings.map(f => f.line));
+      new Set(
+        llmFindings.map(
+          finding => finding.line
+        )
+      );
 
     for (const pf of patternFindings) {
 
@@ -298,7 +391,8 @@ class ScannerService {
 
       if (db) {
 
-        await db.collection("scans")
+        await db
+          .collection("scans")
           .insertOne(scan);
 
       }
@@ -311,7 +405,10 @@ class ScannerService {
     }
     catch (error) {
 
-      logger.error("saveScan failed:", error.message);
+      logger.error(
+        "saveScan failed:",
+        error.message
+      );
 
     }
 
