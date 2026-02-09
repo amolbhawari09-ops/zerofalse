@@ -12,6 +12,13 @@ class ScannerService {
     this.db = null;
     this.githubToken = process.env.GITHUB_TOKEN || null;
 
+    // CRITICAL FIX: ensure memory store exists
+    if (!memoryStore.scans)
+      memoryStore.scans = [];
+
+    if (!memoryStore.patterns)
+      memoryStore.patterns = [];
+
     if (!this.githubToken) {
       logger.warn("⚠️ GITHUB_TOKEN not set — PR scanning limited");
     }
@@ -19,15 +26,16 @@ class ScannerService {
   }
 
   // =====================================================
-  // SAFE DATABASE ACCESS
+  // DATABASE SAFE ACCESS
   // =====================================================
+
   async getDbSafe() {
 
     try {
 
       if (!this.db) {
 
-        logger.info("📦 Initializing database connection...");
+        logger.info("📦 Connecting database...");
         this.db = await connectDatabase();
 
       }
@@ -47,6 +55,7 @@ class ScannerService {
   // =====================================================
   // GET ALL SCANS
   // =====================================================
+
   async getAllScans(limit = 50) {
 
     try {
@@ -84,6 +93,7 @@ class ScannerService {
   // =====================================================
   // GET SINGLE SCAN
   // =====================================================
+
   async getScanById(scanId) {
 
     try {
@@ -113,8 +123,19 @@ class ScannerService {
   }
 
   // =====================================================
-  // GET STATS (FIXES YOUR ERROR)
+  // GET RECENT SCANS (dashboard safe)
   // =====================================================
+
+  async getRecentScans(limit = 10) {
+
+    return await this.getAllScans(limit);
+
+  }
+
+  // =====================================================
+  // GET STATS (CRITICAL FIX)
+  // =====================================================
+
   async getStats() {
 
     try {
@@ -152,12 +173,28 @@ class ScannerService {
           0
         );
 
+      const avgFindings =
+        totalScans === 0
+          ? 0
+          : Math.round(totalFindings / totalScans);
+
+      const lastScan =
+        scans.length > 0
+          ? scans.sort(
+              (a, b) =>
+                new Date(b.timestamp) -
+                new Date(a.timestamp)
+            )[0].timestamp
+          : null;
+
       return {
 
         totalScans,
         completedScans,
         failedScans,
-        totalFindings
+        totalFindings,
+        avgFindings,
+        lastScan
 
       };
 
@@ -171,7 +208,9 @@ class ScannerService {
         totalScans: 0,
         completedScans: 0,
         failedScans: 0,
-        totalFindings: 0
+        totalFindings: 0,
+        avgFindings: 0,
+        lastScan: null
 
       };
 
@@ -180,8 +219,9 @@ class ScannerService {
   }
 
   // =====================================================
-  // SCAN RAW CODE (Frontend scan button uses this)
+  // MAIN SCAN ENGINE
   // =====================================================
+
   async scanCode(
     code,
     filename = "input.js",
@@ -193,9 +233,12 @@ class ScannerService {
     const scanId = generateId();
     const startTime = Date.now();
 
-    logger.info("🔍 Starting scan", { filename });
+    logger.info("🔍 Scan started:", filename);
 
     try {
+
+      if (!code || code.length === 0)
+        throw new Error("Empty code");
 
       // Pattern scan
       const patternFindings =
@@ -218,15 +261,12 @@ class ScannerService {
       }
       catch (llmError) {
 
-        logger.warn(
-          "LLM scan failed:",
-          llmError.message
-        );
+        logger.warn("LLM failed:", llmError.message);
 
       }
 
-      // Merge findings
-      const mergedFindings =
+      // Merge
+      const findings =
         this.mergeFindings(
           patternFindings,
           llmFindings
@@ -243,7 +283,7 @@ class ScannerService {
         code: code.substring(0, 2000),
         codeHash: hashData(code),
 
-        findings: mergedFindings,
+        findings,
         patternFindings,
         llmFindings,
 
@@ -256,9 +296,7 @@ class ScannerService {
 
       await this.saveScan(scan);
 
-      logger.info("✅ Scan complete", {
-        findings: mergedFindings.length
-      });
+      logger.info("✅ Scan finished:", findings.length);
 
       return scan;
 
@@ -282,6 +320,7 @@ class ScannerService {
   // =====================================================
   // FETCH PR FILES
   // =====================================================
+
   async fetchPRFiles(repoFullName, prNumber) {
 
     if (!this.githubToken)
@@ -306,15 +345,13 @@ class ScannerService {
   }
 
   // =====================================================
-  // SCAN FULL PR
+  // SCAN PR
   // =====================================================
+
   async scanPullRequest(repoFullName, prNumber) {
 
     const files =
-      await this.fetchPRFiles(
-        repoFullName,
-        prNumber
-      );
+      await this.fetchPRFiles(repoFullName, prNumber);
 
     const results = [];
 
@@ -322,7 +359,7 @@ class ScannerService {
 
       if (!file.patch) continue;
 
-      const result =
+      const scan =
         await this.scanCode(
           file.patch,
           file.filename,
@@ -331,7 +368,7 @@ class ScannerService {
           this.detectLanguage(file.filename)
         );
 
-      results.push(result);
+      results.push(scan);
 
     }
 
@@ -342,7 +379,10 @@ class ScannerService {
   // =====================================================
   // LANGUAGE DETECTOR
   // =====================================================
+
   detectLanguage(filename) {
+
+    if (!filename) return "text";
 
     if (filename.endsWith(".js")) return "javascript";
     if (filename.endsWith(".ts")) return "typescript";
@@ -358,15 +398,14 @@ class ScannerService {
   // =====================================================
   // MERGE FINDINGS
   // =====================================================
+
   mergeFindings(patternFindings, llmFindings) {
 
     const merged = [...llmFindings];
 
     const seen =
       new Set(
-        llmFindings.map(
-          finding => finding.line
-        )
+        llmFindings.map(f => f.line)
       );
 
     for (const pf of patternFindings) {
@@ -383,6 +422,7 @@ class ScannerService {
   // =====================================================
   // SAVE SCAN
   // =====================================================
+
   async saveScan(scan) {
 
     try {
@@ -405,10 +445,7 @@ class ScannerService {
     }
     catch (error) {
 
-      logger.error(
-        "saveScan failed:",
-        error.message
-      );
+      logger.error("saveScan failed:", error.message);
 
     }
 
