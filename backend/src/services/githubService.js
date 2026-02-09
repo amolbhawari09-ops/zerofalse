@@ -8,9 +8,75 @@ class GitHubService {
 
     this.baseURL = 'https://api.github.com';
 
-    // cache installation token
+    // Token cache
     this.cachedToken = null;
     this.tokenExpiry = 0;
+
+    // Validate required env variables at startup
+    this.validateEnv();
+
+  }
+
+
+  // =====================================================
+  // Validate environment variables
+  // =====================================================
+
+  validateEnv() {
+
+    const requiredVars = [
+      'GITHUB_APP_ID',
+      'GITHUB_PRIVATE_KEY',
+      'GITHUB_INSTALLATION_ID'
+    ];
+
+    for (const name of requiredVars) {
+
+      if (!process.env[name]) {
+
+        logger.error(`Missing required env variable: ${name}`);
+        throw new Error(`Missing required env variable: ${name}`);
+
+      }
+
+    }
+
+    logger.info("GitHubService environment validated");
+
+  }
+
+
+  // =====================================================
+  // Get properly formatted private key
+  // =====================================================
+
+  getPrivateKey() {
+
+    try {
+
+      let key = process.env.GITHUB_PRIVATE_KEY;
+
+      if (!key) {
+        throw new Error("GITHUB_PRIVATE_KEY is empty");
+      }
+
+      // Convert escaped \n → real newline
+      key = key.replace(/\\n/g, '\n');
+
+      // Validate format
+      if (!key.includes('BEGIN RSA PRIVATE KEY')) {
+        throw new Error("Invalid private key format");
+      }
+
+      return key;
+
+    }
+    catch (error) {
+
+      logger.error("Private key processing failed", error.message);
+      throw error;
+
+    }
 
   }
 
@@ -23,8 +89,7 @@ class GitHubService {
 
     try {
 
-      const now =
-        Math.floor(Date.now() / 1000);
+      const now = Math.floor(Date.now() / 1000);
 
       const payload = {
         iat: now - 60,
@@ -32,28 +97,22 @@ class GitHubService {
         iss: process.env.GITHUB_APP_ID
       };
 
-      if (!process.env.GITHUB_PRIVATE_KEY) {
-        throw new Error("Missing GITHUB_PRIVATE_KEY");
-      }
+      const privateKey = this.getPrivateKey();
 
-      const privateKey =
-        process.env.GITHUB_PRIVATE_KEY
-          .replace(/\\n/g, '\n');
+      const token = jwt.sign(
+        payload,
+        privateKey,
+        { algorithm: 'RS256' }
+      );
 
-      const token =
-        jwt.sign(
-          payload,
-          privateKey,
-          { algorithm: 'RS256' }
-        );
+      logger.info("GitHub JWT generated");
 
       return token;
 
     }
     catch (error) {
 
-      logger.error("JWT generation failed", error);
-
+      logger.error("JWT generation failed", error.message);
       throw error;
 
     }
@@ -62,50 +121,47 @@ class GitHubService {
 
 
   // =====================================================
-  // Get installation token (WITH CACHE)
+  // Get installation token (cached)
   // =====================================================
 
   async getInstallationToken(installationId) {
 
     try {
 
-      const now =
-        Date.now();
+      const now = Date.now();
 
-      // reuse token if valid
+      // Use cached token if still valid
       if (
         this.cachedToken &&
         now < this.tokenExpiry
       ) {
 
+        logger.info("Using cached installation token");
         return this.cachedToken;
 
       }
 
-      logger.info("Generating installation token...");
+      logger.info("Requesting new installation token...");
 
-      const jwtToken =
-        this.generateJWT();
+      const jwtToken = this.generateJWT();
 
-      const response =
-        await axios.post(
-          `${this.baseURL}/app/installations/${installationId}/access_tokens`,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${jwtToken}`,
-              Accept: 'application/vnd.github+json'
-            }
+      const response = await axios.post(
+        `${this.baseURL}/app/installations/${installationId}/access_tokens`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${jwtToken}`,
+            Accept: 'application/vnd.github+json'
           }
-        );
+        }
+      );
 
-      this.cachedToken =
-        response.data.token;
+      this.cachedToken = response.data.token;
 
-      this.tokenExpiry =
-        now + (50 * 60 * 1000); // 50 minutes
+      // expire slightly early for safety
+      this.tokenExpiry = now + (50 * 60 * 1000);
 
-      logger.info("Installation token generated");
+      logger.info("Installation token generated successfully");
 
       return this.cachedToken;
 
@@ -125,23 +181,22 @@ class GitHubService {
 
 
   // =====================================================
-  // Get PR files list
+  // Get PR files
   // =====================================================
 
   async getPullRequestFiles(owner, repo, pullNumber, token) {
 
     try {
 
-      const response =
-        await axios.get(
-          `${this.baseURL}/repos/${owner}/${repo}/pulls/${pullNumber}/files`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              Accept: 'application/vnd.github+json'
-            }
+      const response = await axios.get(
+        `${this.baseURL}/repos/${owner}/${repo}/pulls/${pullNumber}/files`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github+json'
           }
-        );
+        }
+      );
 
       return response.data;
 
@@ -168,27 +223,24 @@ class GitHubService {
 
     try {
 
-      const response =
-        await axios.get(
-          `${this.baseURL}/repos/${owner}/${repo}/contents/${path}?ref=${ref}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              Accept: 'application/vnd.github+json'
-            }
+      const response = await axios.get(
+        `${this.baseURL}/repos/${owner}/${repo}/contents/${path}?ref=${ref}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github+json'
           }
-        );
+        }
+      );
 
-      return Buffer.from(
-        response.data.content,
-        'base64'
-      ).toString('utf8');
+      return Buffer
+        .from(response.data.content, 'base64')
+        .toString('utf8');
 
     }
-    catch (error) {
+    catch {
 
-      logger.warn("Skipping file", path);
-
+      logger.warn(`Skipping file: ${path}`);
       return null;
 
     }
@@ -207,9 +259,7 @@ class GitHubService {
       logger.info("Fetching PR code...");
 
       const token =
-        await this.getInstallationToken(
-          installationId
-        );
+        await this.getInstallationToken(installationId);
 
       const files =
         await this.getPullRequestFiles(
@@ -229,9 +279,7 @@ class GitHubService {
           file.filename.endsWith(".txt") ||
           file.filename.includes("package-lock.json")
         ) {
-
           continue;
-
         }
 
         const content =
@@ -254,9 +302,7 @@ class GitHubService {
 
       }
 
-      logger.info(
-        `Fetched ${results.length} files`
-      );
+      logger.info(`Fetched ${results.length} files`);
 
       return results;
 
@@ -286,23 +332,20 @@ class GitHubService {
       logger.info("Posting PR comment...");
 
       const token =
-        await this.getInstallationToken(
-          installationId
-        );
+        await this.getInstallationToken(installationId);
 
-      const response =
-        await axios.post(
-          `${this.baseURL}/repos/${owner}/${repo}/issues/${pullNumber}/comments`,
-          { body },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              Accept: 'application/vnd.github+json'
-            }
+      const response = await axios.post(
+        `${this.baseURL}/repos/${owner}/${repo}/issues/${pullNumber}/comments`,
+        { body },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github+json'
           }
-        );
+        }
+      );
 
-      logger.info("PR comment posted");
+      logger.info("PR comment posted successfully");
 
       return response.data;
 
@@ -322,5 +365,4 @@ class GitHubService {
 
 }
 
-module.exports =
-  new GitHubService();
+module.exports = new GitHubService();
