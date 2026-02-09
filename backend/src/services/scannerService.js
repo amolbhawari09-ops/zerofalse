@@ -8,18 +8,16 @@ const logger = require('../utils/logger');
 class ScannerService {
 
   constructor() {
-
     this.db = null;
-    this.githubToken = process.env.GITHUB_TOKEN;
+    this.githubToken = process.env.GITHUB_TOKEN || null;
 
     if (!this.githubToken) {
-      logger.warn("⚠️ GITHUB_TOKEN not set — PR scanning will fail");
+      logger.warn("⚠️ GITHUB_TOKEN not set — PR scanning limited");
     }
-
   }
 
   // =====================================================
-  // SAFE DATABASE ACCESS (Lazy connection)
+  // SAFE DATABASE ACCESS
   // =====================================================
   async getDbSafe() {
 
@@ -27,7 +25,7 @@ class ScannerService {
 
       if (!this.db) {
 
-        logger.info("📦 Initializing database connection...");
+        logger.info("📦 Initializing database...");
         this.db = await connectDatabase();
 
       }
@@ -36,10 +34,7 @@ class ScannerService {
 
     } catch (error) {
 
-      logger.error("Database init failed", {
-        error: error.message
-      });
-
+      logger.error("Database connection failed:", error.message);
       return null;
 
     }
@@ -47,69 +42,164 @@ class ScannerService {
   }
 
   // =====================================================
-  // MAIN ENTRY — SCAN FULL PR
+  // GET ALL SCANS  ⭐ FIXES YOUR ERROR
   // =====================================================
-  async scanPullRequest(repoFullName, prNumber) {
-
-    const scanSessionId = generateId();
-
-    logger.info("🚀 Starting PR scan", {
-      repo: repoFullName,
-      pr: prNumber,
-      scanSessionId
-    });
+  async getAllScans(limit = 50) {
 
     try {
 
-      const files =
-        await this.fetchPRFiles(repoFullName, prNumber);
+      const db = await this.getDbSafe();
 
-      logger.info(`📁 ${files.length} files fetched`);
+      if (db) {
 
-      const results = [];
-
-      for (const file of files) {
-
-        if (!file.patch) continue;
-
-        const result =
-          await this.scanCode(
-            file.patch,
-            file.filename,
-            repoFullName,
-            prNumber,
-            this.detectLanguage(file.filename)
-          );
-
-        results.push(result);
+        return await db
+          .collection("scans")
+          .find({})
+          .sort({ timestamp: -1 })
+          .limit(limit)
+          .toArray();
 
       }
 
-      logger.info("✅ PR scan completed", {
-        filesScanned: results.length
-      });
+      // fallback memory
+      return memoryStore.scans
+        .sort((a, b) =>
+          new Date(b.timestamp) - new Date(a.timestamp)
+        )
+        .slice(0, limit);
 
-      return results;
+    }
+    catch (error) {
 
-    } catch (error) {
-
-      logger.error("❌ PR scan failed", {
-        error: error.message
-      });
-
-      throw error;
+      logger.error("getAllScans failed:", error.message);
+      return [];
 
     }
 
   }
 
   // =====================================================
-  // FETCH PR FILES FROM GITHUB
+  // GET SINGLE SCAN BY ID
+  // =====================================================
+  async getScanById(scanId) {
+
+    try {
+
+      const db = await this.getDbSafe();
+
+      if (db) {
+
+        return await db
+          .collection("scans")
+          .findOne({ id: scanId });
+
+      }
+
+      return memoryStore.scans
+        .find(s => s.id === scanId);
+
+    }
+    catch (error) {
+
+      logger.error("getScanById failed:", error.message);
+      return null;
+
+    }
+
+  }
+
+  // =====================================================
+  // SCAN RAW CODE (Frontend scan button uses this)
+  // =====================================================
+  async scanCode(code, filename = "input.js", repo = "manual", prNumber = null, language = "javascript") {
+
+    const scanId = generateId();
+    const startTime = Date.now();
+
+    logger.info("🔍 Starting scan", { filename });
+
+    try {
+
+      // Pattern scan
+      const patternFindings =
+        quickPatternScan(code, language) || [];
+
+      // LLM scan
+      let llmFindings = [];
+
+      try {
+
+        const llmResult =
+          await LLMService.analyzeCode(code, filename, language);
+
+        llmFindings = llmResult.findings || [];
+
+      }
+      catch (llmError) {
+
+        logger.warn("LLM scan failed:", llmError.message);
+
+      }
+
+      // Merge findings
+      const mergedFindings =
+        this.mergeFindings(patternFindings, llmFindings);
+
+      const scan = {
+
+        id: scanId,
+        repo,
+        prNumber,
+        filename,
+        language,
+
+        code: code.substring(0, 2000),
+        codeHash: hashData(code),
+
+        findings: mergedFindings,
+
+        patternFindings,
+        llmFindings,
+
+        timestamp: new Date(),
+        scanDuration: Date.now() - startTime,
+
+        status: "completed"
+
+      };
+
+      await this.saveScan(scan);
+
+      logger.info("✅ Scan complete", {
+        findings: mergedFindings.length
+      });
+
+      return scan;
+
+    }
+    catch (error) {
+
+      logger.error("Scan failed:", error.message);
+
+      return {
+
+        id: scanId,
+        error: error.message,
+        status: "failed"
+
+      };
+
+    }
+
+  }
+
+  // =====================================================
+  // FETCH PR FILES
   // =====================================================
   async fetchPRFiles(repoFullName, prNumber) {
 
     if (!this.githubToken)
-      throw new Error("GITHUB_TOKEN missing");
+      throw new Error("Missing GITHUB_TOKEN");
 
     const url =
       `https://api.github.com/repos/${repoFullName}/pulls/${prNumber}/files`;
@@ -130,86 +220,33 @@ class ScannerService {
   }
 
   // =====================================================
-  // MAIN SCAN ENGINE
+  // SCAN FULL PR
   // =====================================================
-  async scanCode(code, filename, repo, prNumber, language = "javascript") {
+  async scanPullRequest(repoFullName, prNumber) {
 
-    const scanId = generateId();
-    const startTime = Date.now();
+    const files =
+      await this.fetchPRFiles(repoFullName, prNumber);
 
-    logger.info("🔍 Scanning file", { filename });
+    const results = [];
 
-    try {
+    for (const file of files) {
 
-      // Pattern scan
-      const patternFindings =
-        quickPatternScan(code, language);
+      if (!file.patch) continue;
 
-      // LLM scan
-      const llmResult =
-        await LLMService.analyzeCode(code, filename, language);
-
-      // Merge findings
-      const mergedFindings =
-        this.mergeFindings(
-          patternFindings,
-          llmResult.findings
+      const result =
+        await this.scanCode(
+          file.patch,
+          file.filename,
+          repoFullName,
+          prNumber,
+          this.detectLanguage(file.filename)
         );
 
-      // Apply learned patterns
-      const filteredFindings =
-        await this.applyLearnedPatterns(repo, mergedFindings);
-
-      const scan = {
-
-        id: scanId,
-        repo,
-        prNumber,
-        filename,
-        language,
-
-        code: code.substring(0, 2000),
-        codeHash: hashData(code),
-
-        findings: filteredFindings,
-        rawFindings: mergedFindings,
-
-        patternFindings,
-        llmFindings: llmResult.findings,
-
-        llmProvider: llmResult.provider,
-        llmModel: llmResult.model,
-
-        timestamp: new Date(),
-        scanDuration: Date.now() - startTime,
-
-        status: "completed"
-
-      };
-
-      await this.saveScan(scan);
-
-      logger.info("✅ Scan completed", {
-        findings: filteredFindings.length
-      });
-
-      return scan;
-
-    } catch (error) {
-
-      logger.error("❌ Scan failed", {
-        error: error.message
-      });
-
-      return {
-
-        id: scanId,
-        error: error.message,
-        status: "failed"
-
-      };
+      results.push(result);
 
     }
+
+    return results;
 
   }
 
@@ -246,64 +283,7 @@ class ScannerService {
 
     }
 
-    const severityOrder =
-      { critical: 0, high: 1, medium: 2, low: 3 };
-
-    return merged.sort(
-      (a, b) =>
-        severityOrder[a.severity] -
-        severityOrder[b.severity]
-    );
-
-  }
-
-  // =====================================================
-  // APPLY LEARNED PATTERNS
-  // =====================================================
-  async applyLearnedPatterns(repo, findings) {
-
-    const learned =
-      await this.getLearnedPatterns(repo);
-
-    return findings.map(f => {
-
-      const similar =
-        learned.find(lp =>
-          lp.type === f.type &&
-          Math.abs(lp.line - f.line) < 5
-        );
-
-      if (similar) {
-
-        return {
-          ...f,
-          confidence: f.confidence * 0.3,
-          learned: true
-        };
-
-      }
-
-      return f;
-
-    });
-
-  }
-
-  // =====================================================
-  // GET LEARNED PATTERNS
-  // =====================================================
-  async getLearnedPatterns(repo) {
-
-    const db =
-      await this.getDbSafe();
-
-    if (db)
-      return await db.collection("patterns")
-        .find({ repo })
-        .toArray();
-
-    return memoryStore.patterns
-      .filter(p => p.repo === repo);
+    return merged;
 
   }
 
@@ -312,17 +292,26 @@ class ScannerService {
   // =====================================================
   async saveScan(scan) {
 
-    const db =
-      await this.getDbSafe();
+    try {
 
-    if (db) {
+      const db = await this.getDbSafe();
 
-      await db.collection("scans")
-        .insertOne(scan);
+      if (db) {
 
-    } else {
+        await db.collection("scans")
+          .insertOne(scan);
 
-      memoryStore.scans.push(scan);
+      }
+      else {
+
+        memoryStore.scans.push(scan);
+
+      }
+
+    }
+    catch (error) {
+
+      logger.error("saveScan failed:", error.message);
 
     }
 
