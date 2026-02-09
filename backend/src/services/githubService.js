@@ -201,44 +201,43 @@ class GitHubService {
   // =====================================================
 
   async createPRComment(owner, repo, prNumber, body, token) {
-    try {
-      if (!token) {
-        throw new Error("Token required");
-      }
-
-      if (!body || body.trim().length === 0) {
-        throw new Error("Comment body cannot be empty");
-      }
-
-      logger.info(`Posting comment to ${owner}/${repo} #${prNumber}`);
-
-      // Use issues endpoint (works for PRs too)
-      const response = await axios.post(
-        `${this.baseURL}/repos/${owner}/${repo}/issues/${prNumber}/comments`,
-        { body },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/vnd.github+json',
-            'X-GitHub-Api-Version': '2022-11-28'
-          },
-          timeout: 10000
-        }
-      );
-
-      logger.info(`✅ Comment posted: ${response.data.html_url}`);
-      return response.data;
-
-    } catch (error) {
-      logger.error("❌ Comment failed:", {
-        status: error.response?.status,
-        message: error.response?.data?.message,
-        url: error.config?.url
-      });
-      throw error;
+  try {
+    if (!token) {
+      throw new Error("Token required");
     }
+
+    if (!body || body.trim().length === 0) {
+      throw new Error("Comment body cannot be empty");
+    }
+
+    logger.info(`💬 Creating PR comment on ${owner}/${repo} #${prNumber}`);
+    logger.info(`Token: ${token.substring(0, 15)}...`);
+
+    // Use issues endpoint (works for PRs)
+    const url = `${this.baseURL}/repos/${owner}/${repo}/issues/${prNumber}/comments`;
+    logger.info(`POST ${url}`);
+
+    const response = await axios.post(
+      url,
+      { body },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28'
+        },
+        timeout: 10000
+      }
+    );
+
+    logger.info(`✅ Comment created: ${response.data.html_url}`);
+    return response.data;
+
+  } catch (error) {
+    logger.error("❌ Comment creation failed:");
+    logger.error(`Status: ${error.response?.status}`);
+    logger.error(`Data: ${JSON.stringify(error.response?.data)}`);
+    logger.error(`Message: ${error.message}`);
+    throw error;
   }
-
 }
-
-module.exports = new GitHubService();
