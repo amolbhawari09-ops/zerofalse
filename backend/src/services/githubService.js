@@ -5,85 +5,63 @@ const jwt = require('jsonwebtoken');
 class GitHubService {
 
   constructor() {
-
     this.baseURL = 'https://api.github.com';
-
-    // Token cache
-    this.cachedToken = null;
-    this.tokenExpiry = 0;
-
+    this.tokenCache = new Map(); // Cache tokens by installationId
     this.validateEnv();
-
   }
 
-
   // =====================================================
-  // Validate environment variables
+  // Validate environment
   // =====================================================
 
   validateEnv() {
-
-    const requiredVars = [
-      'GITHUB_APP_ID',
-      'GITHUB_PRIVATE_KEY'
-    ];
-
-    for (const name of requiredVars) {
-
+    const required = ['GITHUB_APP_ID', 'GITHUB_PRIVATE_KEY'];
+    
+    for (const name of required) {
       if (!process.env[name]) {
-
-        logger.error(`Missing env variable: ${name}`);
-        throw new Error(`Missing env variable: ${name}`);
-
+        throw new Error(`Missing env: ${name}`);
       }
-
     }
-
-    logger.info("GitHubService environment OK");
-
+    
+    logger.info("GitHubService: Environment OK");
   }
 
-
   // =====================================================
-  // Fix private key formatting
+  // Fix private key format
   // =====================================================
 
   getPrivateKey() {
-
     let key = process.env.GITHUB_PRIVATE_KEY;
 
-    if (!key)
+    if (!key) {
       throw new Error("Private key empty");
+    }
 
-    // Fix Railway formatting
+    // Fix escaped newlines
     key = key.replace(/\\n/g, '\n');
 
-    if (
-      !key.includes("BEGIN RSA PRIVATE KEY") &&
-      !key.includes("BEGIN PRIVATE KEY")
-    ) {
+    // Validate format
+    const hasRSA = key.includes("BEGIN RSA PRIVATE KEY");
+    const hasPKCS8 = key.includes("BEGIN PRIVATE KEY");
+    
+    if (!hasRSA && !hasPKCS8) {
       throw new Error("Invalid private key format");
     }
 
     return key;
-
   }
 
-
   // =====================================================
-  // Generate GitHub App JWT
+  // Generate JWT
   // =====================================================
 
   generateJWT() {
-
     const now = Math.floor(Date.now() / 1000);
 
     const payload = {
-
-      iat: now - 60,
-      exp: now + 600,
+      iat: now - 60,  // 60 seconds in the past
+      exp: now + 600, // 10 minutes
       iss: process.env.GITHUB_APP_ID
-
     };
 
     const token = jwt.sign(
@@ -92,215 +70,173 @@ class GitHubService {
       { algorithm: 'RS256' }
     );
 
-    logger.info("GitHub JWT generated");
-
     return token;
-
   }
 
-
   // =====================================================
-  // Get installation token (FIXED)
+  // Get installation token (with caching)
   // =====================================================
 
   async getInstallationToken(installationId) {
-
     try {
-
-      if (!installationId)
-        throw new Error("installationId missing");
-
-      const now = Date.now();
-
-      if (
-        this.cachedToken &&
-        now < this.tokenExpiry
-      ) {
-
-        logger.info("Using cached installation token");
-        return this.cachedToken;
-
+      if (!installationId) {
+        throw new Error("installationId required");
       }
 
-      logger.info("Requesting installation token...");
+      // Check cache
+      const cached = this.tokenCache.get(installationId);
+      const now = Date.now();
+
+      if (cached && now < cached.expiresAt) {
+        logger.info("Using cached installation token");
+        return cached.token;
+      }
+
+      logger.info(`Requesting token for installation ${installationId}`);
 
       const jwtToken = this.generateJWT();
 
       const response = await axios.post(
-
         `${this.baseURL}/app/installations/${installationId}/access_tokens`,
-
         {},
-
         {
           headers: {
-
             Authorization: `Bearer ${jwtToken}`,
-            Accept: 'application/vnd.github+json'
-
-          }
+            Accept: 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28'
+          },
+          timeout: 10000
         }
-
       );
 
-      this.cachedToken = response.data.token;
+      const token = response.data.token;
+      const expiresIn = response.data.expires_in || 3600; // Default 1 hour
+      
+      // Cache token (expire 5 minutes early for safety)
+      this.tokenCache.set(installationId, {
+        token,
+        expiresAt: now + ((expiresIn - 300) * 1000)
+      });
 
-      this.tokenExpiry =
-        now + (response.data.expires_in * 1000 || 50 * 60 * 1000);
+      logger.info("Installation token acquired");
+      return token;
 
-      logger.info("Installation token created");
-
-      return this.cachedToken;
-
-    }
-    catch (error) {
-
-      logger.error(
-        "Installation token error:",
-        error.response?.data || error.message
-      );
-
+    } catch (error) {
+      logger.error("Token acquisition failed:", {
+        status: error.response?.status,
+        message: error.response?.data?.message || error.message
+      });
       throw error;
-
     }
-
   }
-
 
   // =====================================================
   // Get PR files
   // =====================================================
 
   async getPullRequestFiles(owner, repo, prNumber, token) {
-
     try {
-
-      logger.info(`Fetching PR files: ${owner}/${repo} #${prNumber}`);
+      logger.info(`Fetching files: ${owner}/${repo} #${prNumber}`);
 
       const response = await axios.get(
-
         `${this.baseURL}/repos/${owner}/${repo}/pulls/${prNumber}/files`,
-
         {
           headers: {
-
             Authorization: `Bearer ${token}`,
             Accept: 'application/vnd.github+json'
-
-          }
+          },
+          timeout: 10000
         }
-
       );
 
-      logger.info(`Files fetched: ${response.data.length}`);
-
+      logger.info(`Found ${response.data.length} files`);
       return response.data;
 
-    }
-    catch (error) {
-
-      logger.error(
-        "Fetch files failed:",
-        error.response?.data || error.message
-      );
-
+    } catch (error) {
+      logger.error("Failed to fetch files:", {
+        status: error.response?.status,
+        message: error.response?.data?.message
+      });
       throw error;
-
     }
-
   }
-
 
   // =====================================================
   // Get file content
   // =====================================================
 
   async getFileContent(owner, repo, path, ref, token) {
-
     try {
-
       const response = await axios.get(
-
-        `${this.baseURL}/repos/${owner}/${repo}/contents/${path}?ref=${ref}`,
-
+        `${this.baseURL}/repos/${owner}/${repo}/contents/${path}`,
         {
+          params: { ref },
           headers: {
-
             Authorization: `Bearer ${token}`,
             Accept: 'application/vnd.github+json'
-
-          }
+          },
+          timeout: 10000
         }
-
       );
 
-      return Buffer
-        .from(response.data.content, 'base64')
-        .toString('utf8');
-
-    }
-    catch (error) {
-
-      logger.warn(`Skipping file: ${path}`);
-
+      // Handle both string and object content
+      if (response.data.content) {
+        return Buffer.from(response.data.content, 'base64').toString('utf8');
+      }
+      
       return null;
 
+    } catch (error) {
+      if (error.response?.status === 404) {
+        logger.warn(`File not found: ${path}`);
+      } else {
+        logger.warn(`Failed to get ${path}:`, error.response?.status);
+      }
+      return null;
     }
-
   }
 
-
   // =====================================================
-  // Create PR comment (FULLY FIXED)
+  // Create PR comment (FIXED - uses issues endpoint)
   // =====================================================
 
-  async createPRComment(owner, repo, prNumber, body, installationId) {
-
+  async createPRComment(owner, repo, prNumber, body, token) {
     try {
+      if (!token) {
+        throw new Error("Token required");
+      }
 
-      if (!installationId)
-        throw new Error("installationId missing");
+      if (!body || body.trim().length === 0) {
+        throw new Error("Comment body cannot be empty");
+      }
 
-      logger.info("Creating PR comment...");
+      logger.info(`Posting comment to ${owner}/${repo} #${prNumber}`);
 
-      const token =
-        await this.getInstallationToken(
-          installationId
-        );
-
+      // Use issues endpoint (works for PRs too)
       const response = await axios.post(
-
         `${this.baseURL}/repos/${owner}/${repo}/issues/${prNumber}/comments`,
-
         { body },
-
         {
           headers: {
-
             Authorization: `Bearer ${token}`,
-            Accept: 'application/vnd.github+json'
-
-          }
+            Accept: 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28'
+          },
+          timeout: 10000
         }
-
       );
 
-      logger.info("PR comment created");
-
+      logger.info(`✅ Comment posted: ${response.data.html_url}`);
       return response.data;
 
-    }
-    catch (error) {
-
-      logger.error(
-        "Comment creation failed:",
-        error.response?.data || error.message
-      );
-
+    } catch (error) {
+      logger.error("❌ Comment failed:", {
+        status: error.response?.status,
+        message: error.response?.data?.message,
+        url: error.config?.url
+      });
       throw error;
-
     }
-
   }
 
 }
