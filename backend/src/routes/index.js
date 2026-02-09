@@ -7,6 +7,12 @@ const webhookRoutes = require('./webhook');
 
 router.use('/scan', scanRoutes);
 router.use('/feedback', feedbackRoutes);
-router.use('/webhook', webhookRoutes);
+
+/*
+CRITICAL FIX:
+Do NOT add /webhook here
+because webhook.js already contains /webhook/github
+*/
+router.use('/', webhookRoutes);
 
 module.exports = router;
