@@ -241,3 +241,8 @@ class GitHubService {
     throw error;
   }
 }
+
+
+}  // <-- This closes the class
+
+module.exports = new GitHubService();  // <-- This exports the instance
