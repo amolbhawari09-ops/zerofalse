@@ -2,74 +2,210 @@ const ScannerService = require('../services/scannerService');
 const logger = require('../utils/logger');
 
 class ScanController {
+
+  // =====================================================
+  // MANUAL SCAN (Frontend "Scan for Vulnerabilities" button)
+  // POST /api/scan
+  // =====================================================
   async manualScan(req, res) {
+
     try {
-      const { code, filename, language, repo, prNumber } = req.body;
-      
-      if (!code || !filename) {
-        return res.status(400).json({ 
-          error: 'Missing required fields: code, filename' 
-        });
-      }
-      
-      // Validate code length
-      const maxLength = parseInt(process.env.MAX_CODE_LENGTH) || 50000;
-      if (code.length > maxLength) {
-        return res.status(400).json({
-          error: `Code exceeds maximum length of ${maxLength} characters`
-        });
-      }
-      
-      const scan = await ScannerService.scanCode(
+
+      const {
         code,
         filename,
-        repo || 'manual-test',
-        prNumber || 1,
-        language || 'javascript'
-      );
-      
-      res.json(scan);
-      
-    } catch (error) {
-      logger.error('Manual scan error:', { error: error.message });
-      res.status(500).json({ error: error.message });
+        language,
+        repo,
+        prNumber
+      } = req.body;
+
+      // Validate input
+      if (!code) {
+
+        return res.status(400).json({
+          success: false,
+          error: "Code is required"
+        });
+
+      }
+
+      const safeFilename =
+        filename || "input.js";
+
+      const safeLanguage =
+        language || "javascript";
+
+      const safeRepo =
+        repo || "manual";
+
+      const safePrNumber =
+        prNumber || null;
+
+      logger.info("Manual scan requested", {
+        filename: safeFilename,
+        language: safeLanguage
+      });
+
+      const scan =
+        await ScannerService.scanCode(
+          code,
+          safeFilename,
+          safeRepo,
+          safePrNumber,
+          safeLanguage
+        );
+
+      return res.status(200).json({
+        success: true,
+        scan
+      });
+
     }
+    catch (error) {
+
+      logger.error(
+        "Manual scan failed",
+        error.message
+      );
+
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+
+    }
+
   }
-  
+
+  // =====================================================
+  // GET ALL SCANS
+  // GET /api/scan
+  // =====================================================
   async getScans(req, res) {
+
     try {
-      const limit = parseInt(req.query.limit) || 50;
-      const scans = await ScannerService.getAllScans(limit);
-      const stats = await ScannerService.getStats();
-      
-      res.json({
+
+      const limit =
+        parseInt(req.query.limit) || 50;
+
+      const scans =
+        await ScannerService.getAllScans(limit);
+
+      const stats =
+        await ScannerService.getStats();
+
+      return res.status(200).json({
+
+        success: true,
         scans,
         stats,
         count: scans.length
+
       });
-      
-    } catch (error) {
-      logger.error('Get scans error:', { error: error.message });
-      res.status(500).json({ error: error.message });
+
     }
+    catch (error) {
+
+      logger.error(
+        "Get scans failed",
+        error.message
+      );
+
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+
+    }
+
   }
-  
+
+  // =====================================================
+  // GET SINGLE SCAN
+  // GET /api/scan/:id
+  // =====================================================
   async getScan(req, res) {
+
     try {
+
       const { id } = req.params;
-      const scan = await ScannerService.getScan(id);
-      
-      if (!scan) {
-        return res.status(404).json({ error: 'Scan not found' });
+
+      if (!id) {
+
+        return res.status(400).json({
+          success: false,
+          error: "Scan ID required"
+        });
+
       }
-      
-      res.json(scan);
-      
-    } catch (error) {
-      logger.error('Get scan error:', { error: error.message });
-      res.status(500).json({ error: error.message });
+
+      const scan =
+        await ScannerService.getScanById(id);
+
+      if (!scan) {
+
+        return res.status(404).json({
+          success: false,
+          error: "Scan not found"
+        });
+
+      }
+
+      return res.status(200).json({
+        success: true,
+        scan
+      });
+
     }
+    catch (error) {
+
+      logger.error(
+        "Get scan failed",
+        error.message
+      );
+
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+
+    }
+
   }
+
+  // =====================================================
+  // GET SCAN STATS
+  // GET /api/scan/stats
+  // =====================================================
+  async getStats(req, res) {
+
+    try {
+
+      const stats =
+        await ScannerService.getStats();
+
+      return res.status(200).json({
+        success: true,
+        stats
+      });
+
+    }
+    catch (error) {
+
+      logger.error(
+        "Get stats failed",
+        error.message
+      );
+
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+
+    }
+
+  }
+
 }
 
 module.exports = new ScanController();
