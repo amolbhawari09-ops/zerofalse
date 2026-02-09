@@ -4,16 +4,23 @@ const router = express.Router();
 const WebhookController =
   require('../controllers/webhookController');
 
-/**
- * GitHub webhook endpoint
- *
- * CRITICAL FIX:
- * Use express.raw ONLY for this route
- * so signature verification works
- */
-router.post(
-  '/github',
 
+// ======================================================
+// GitHub Webhook Endpoint
+// FINAL URL:
+// https://zerofalse-production.up.railway.app/api/webhook/github
+// ======================================================
+//
+// IMPORTANT:
+// - Uses express.raw for signature verification
+// - Must match GitHub webhook URL EXACTLY
+// - Must be mounted under /api in app.js
+// ======================================================
+
+router.post(
+  '/webhook/github',
+
+  // CRITICAL: raw body required for GitHub signature validation
   express.raw({
     type: 'application/json',
     limit: '10mb'
@@ -23,20 +30,52 @@ router.post(
 
     try {
 
-      await WebhookController
-        .handleGitHubWebhook(req, res);
+      console.log("📩 GitHub webhook received");
 
-    } catch (error) {
+      await WebhookController.handleGitHubWebhook(
+        req,
+        res
+      );
 
-      console.error('Webhook route error:', error);
+    }
+    catch (error) {
 
-      res.status(500).json({
-        error: 'Webhook failed'
-      });
+      console.error(
+        "❌ Webhook route fatal error:",
+        error
+      );
+
+      if (!res.headersSent) {
+
+        res.status(500).json({
+          success: false,
+          error: "Webhook processing failed"
+        });
+
+      }
 
     }
 
   }
 );
+
+
+// ======================================================
+// Health test endpoint (optional but useful)
+// ======================================================
+
+router.get(
+  '/webhook/test',
+  (req, res) => {
+
+    res.status(200).json({
+      success: true,
+      message: "Webhook route working",
+      timestamp: new Date().toISOString()
+    });
+
+  }
+);
+
 
 module.exports = router;
