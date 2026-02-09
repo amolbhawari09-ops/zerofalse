@@ -274,7 +274,7 @@ class WebhookController {
         repo,
         prNumber,
         comment,
-        token
+        installationId  // ← FIXED: was 'token', now 'installationId'
       );
 
       logger.info("PR comment posted");
@@ -310,7 +310,7 @@ class WebhookController {
 
       comment += `### ${result.filename}\n`;
 
-      for (const finding of result.findings) {
+      for (const finding of results.findings) {
 
         total++;
 
