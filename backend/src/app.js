@@ -49,27 +49,23 @@ app.get('/', (req, res) => {
 app.use(cors({
   origin: '*',
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization','X-Hub-Signature-256']
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Hub-Signature-256',
+    'X-GitHub-Event'
+  ]
 }));
 
 
 // ========================================
-// CRITICAL FIX: RAW BODY ONLY FOR GITHUB WEBHOOK
+// IMPORTANT: DO NOT use express.raw here
+// webhook raw parsing is handled in routes/webhook.js
 // ========================================
-// MUST be before express.json()
-
-app.use('/api/webhook/github',
-
-  express.raw({
-    type: '*/*',
-    limit: '10mb'
-  })
-
-);
 
 
 // ========================================
-// NORMAL JSON PARSER FOR OTHER ROUTES
+// NORMAL JSON PARSER
 // ========================================
 
 app.use(express.json({
@@ -93,7 +89,8 @@ app.use('/api', routes);
 // STATIC FRONTEND (optional)
 // ========================================
 
-const frontendPath = path.join(__dirname, '../../frontend');
+const frontendPath =
+  path.join(__dirname, '../../frontend');
 
 if (fs.existsSync(frontendPath)) {
 
@@ -101,7 +98,9 @@ if (fs.existsSync(frontendPath)) {
 
   app.get('/app', (req, res) => {
 
-    res.sendFile(path.join(frontendPath, 'index.html'));
+    res.sendFile(
+      path.join(frontendPath, 'index.html')
+    );
 
   });
 
