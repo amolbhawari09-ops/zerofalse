@@ -3,6 +3,11 @@ const GitHubService = require('../services/githubService');
 const ScannerService = require('../services/scannerService');
 const logger = require('../utils/logger');
 
+
+// ======================================================
+// FILE TYPES TO SCAN
+// ======================================================
+
 const CODE_EXTENSIONS = [
   '.js', '.jsx', '.ts', '.tsx',
   '.py', '.pyw',
@@ -18,22 +23,34 @@ const CODE_EXTENSIONS = [
   '.scala', '.sc'
 ];
 
+
 function shouldScanFile(filename) {
+
   if (!filename) return false;
+
   return CODE_EXTENSIONS.some(ext =>
     filename.toLowerCase().endsWith(ext)
   );
+
 }
+
+
+// ======================================================
+// CONTROLLER CLASS
+// ======================================================
 
 class WebhookController {
 
-  // ========================================
-  // SIGNATURE VERIFY WITH DEBUG
-  // ========================================
+
+  // ======================================================
+  // SIGNATURE VERIFICATION (CRITICAL FIX)
+  // ======================================================
 
   verifySignature(req) {
 
-    logger.info("🔐 Starting signature verification");
+    logger.info("=================================");
+    logger.info("🔐 SIGNATURE VERIFICATION START");
+    logger.info("=================================");
 
     try {
 
@@ -45,30 +62,37 @@ class WebhookController {
 
       logger.info("Signature exists:", !!signature);
       logger.info("Secret exists:", !!secret);
+      logger.info("RawBody exists:", !!req.rawBody);
 
       if (!signature) {
+
         logger.warn("❌ Missing GitHub signature header");
+
         return false;
+
       }
 
       if (!secret) {
-        logger.warn("❌ Missing webhook secret env");
+
+        logger.warn("❌ Missing webhook secret");
+
         return false;
+
       }
 
-      if (!Buffer.isBuffer(req.body)) {
-        logger.error("❌ Body is NOT raw buffer");
-        logger.error("Body type:", typeof req.body);
-        return false;
-      }
+      if (!req.rawBody) {
 
-      logger.info("Body is valid raw buffer");
+        logger.error("❌ Missing rawBody");
+
+        return false;
+
+      }
 
       const expectedSignature =
         'sha256=' +
         crypto
           .createHmac('sha256', secret)
-          .update(req.body)
+          .update(req.rawBody)
           .digest('hex');
 
       const valid =
@@ -85,6 +109,7 @@ class WebhookController {
     catch (error) {
 
       logger.error("💥 Signature verification crash");
+
       logger.error(error.message);
       logger.error(error.stack);
 
@@ -95,9 +120,9 @@ class WebhookController {
   }
 
 
-  // ========================================
-  // MAIN WEBHOOK ENTRY
-  // ========================================
+  // ======================================================
+  // MAIN ENTRY
+  // ======================================================
 
   async handleGitHubWebhook(req, res) {
 
@@ -108,17 +133,29 @@ class WebhookController {
 
     try {
 
+      // ========================================
+      // STEP 1: VERIFY SIGNATURE
+      // ========================================
+
       logger.info("Step 1: Verifying signature...");
 
-      if (!this.verifySignature(req)) {
+      const valid =
+        this.verifySignature(req);
 
-        logger.warn("❌ Signature invalid");
+      if (!valid) {
+
+        logger.warn("❌ Invalid signature");
+
         return res.status(200).send("Ignored");
 
       }
 
       logger.info("✅ Signature verified");
 
+
+      // ========================================
+      // STEP 2: PARSE PAYLOAD
+      // ========================================
 
       logger.info("Step 2: Parsing payload...");
 
@@ -127,14 +164,15 @@ class WebhookController {
       try {
 
         payload =
-          JSON.parse(req.body.toString());
+          JSON.parse(req.rawBody.toString());
 
-        logger.info("✅ Payload parsed");
+        logger.info("Payload parsed successfully");
 
       }
       catch (parseError) {
 
-        logger.error("❌ Payload parse failed");
+        logger.error("Payload parse failed");
+
         logger.error(parseError.message);
 
         return res.status(200).send("Invalid payload");
@@ -145,17 +183,17 @@ class WebhookController {
       const event =
         req.headers['x-github-event'];
 
-      logger.info("Event type:", event);
+      logger.info("Event:", event);
       logger.info("Action:", payload?.action);
 
 
       // ========================================
-      // INSTALL EVENT DEBUG
+      // INSTALL EVENT
       // ========================================
 
       if (event === "installation") {
 
-        logger.info("🔥 INSTALL EVENT DETECTED");
+        logger.info("INSTALL EVENT DETECTED");
 
         const installationId =
           payload.installation?.id;
@@ -166,28 +204,29 @@ class WebhookController {
 
 
       // ========================================
-      // PR EVENT DEBUG
+      // PR EVENT
       // ========================================
 
       if (event === "pull_request") {
 
-        logger.info("🔥 PULL REQUEST EVENT DETECTED");
+        logger.info("PULL REQUEST EVENT DETECTED");
 
         await this.handlePullRequest(payload);
 
       }
 
 
-      logger.info("✅ Webhook completed");
+      logger.info("Webhook processing complete");
 
       return res.status(200).send("OK");
 
     }
     catch (fatalError) {
 
-      logger.error("💀 WEBHOOK FATAL ERROR");
-      logger.error("Message:", fatalError.message);
-      logger.error("Stack:", fatalError.stack);
+      logger.error("FATAL WEBHOOK ERROR");
+
+      logger.error(fatalError.message);
+      logger.error(fatalError.stack);
 
       return res.status(200).send("Error");
 
@@ -196,33 +235,34 @@ class WebhookController {
   }
 
 
-  // ========================================
-  // PR HANDLER WITH FULL DEBUG
-  // ========================================
+  // ======================================================
+  // HANDLE PR
+  // ======================================================
 
   async handlePullRequest(payload) {
 
     logger.info("=================================");
-    logger.info("🚀 PR HANDLER STARTED");
+    logger.info("🚀 PR HANDLER START");
     logger.info("=================================");
 
     try {
 
-      const action = payload.action;
+      const action =
+        payload.action;
 
       logger.info("PR Action:", action);
 
       if (!["opened", "synchronize"].includes(action)) {
 
-        logger.info("Skipping unsupported action");
+        logger.info("Skipping unsupported PR action");
+
         return;
 
       }
 
+
       const installationId =
         payload.installation?.id;
-
-      logger.info("Installation ID:", installationId);
 
       if (!installationId)
         throw new Error("Installation ID missing");
@@ -250,24 +290,24 @@ class WebhookController {
 
 
       // ========================================
-      // TOKEN DEBUG
+      // GET INSTALL TOKEN
       // ========================================
 
-      logger.info("Step 3: Requesting installation token");
+      logger.info("Requesting installation token...");
 
       const token =
         await GitHubService.getInstallationToken(
           installationId
         );
 
-      logger.info("✅ Token received");
+      logger.info("Token acquired");
 
 
       // ========================================
-      // FILE FETCH DEBUG
+      // FETCH FILES
       // ========================================
 
-      logger.info("Step 4: Fetching PR files");
+      logger.info("Fetching PR files...");
 
       const files =
         await GitHubService.getPullRequestFiles(
@@ -277,35 +317,38 @@ class WebhookController {
           token
         );
 
-      logger.info("Files received:", files.length);
+      logger.info("Total files:", files.length);
 
 
       const codeFiles =
-        files.filter(f =>
-          shouldScanFile(f.filename)
+        files.filter(file =>
+          shouldScanFile(file.filename)
         );
 
-      logger.info("Code files count:", codeFiles.length);
+      logger.info("Code files:", codeFiles.length);
 
 
       if (codeFiles.length === 0) {
 
-        logger.info("No code files to scan");
+        logger.info("No scannable files");
+
         return;
 
       }
 
 
       // ========================================
-      // SCAN DEBUG
+      // SCAN FILES
       // ========================================
 
       let totalFindings = 0;
+
       const results = [];
+
 
       for (const file of codeFiles) {
 
-        logger.info("Scanning file:", file.filename);
+        logger.info("Scanning:", file.filename);
 
         const content =
           await GitHubService.getFileContent(
@@ -318,12 +361,13 @@ class WebhookController {
 
         if (!content) {
 
-          logger.warn("No content:", file.filename);
+          logger.warn("Empty content:", file.filename);
+
           continue;
 
         }
 
-        const scan =
+        const scanResult =
           await ScannerService.scanCode(
             content,
             file.filename,
@@ -332,7 +376,7 @@ class WebhookController {
           );
 
         const findings =
-          scan?.findings || [];
+          scanResult?.findings || [];
 
         totalFindings += findings.length;
 
@@ -342,7 +386,7 @@ class WebhookController {
         });
 
         logger.info(
-          "Findings:",
+          "Findings in file:",
           findings.length
         );
 
@@ -353,10 +397,10 @@ class WebhookController {
 
 
       // ========================================
-      // COMMENT DEBUG
+      // CREATE COMMENT
       // ========================================
 
-      logger.info("Step 5: Posting PR comment");
+      logger.info("Posting PR comment...");
 
       const comment =
         this.formatComment(
@@ -372,14 +416,15 @@ class WebhookController {
         token
       );
 
-      logger.info("✅ Comment posted successfully");
+      logger.info("Comment posted successfully");
 
     }
     catch (error) {
 
-      logger.error("💥 PR HANDLER CRASH");
-      logger.error("Message:", error.message);
-      logger.error("Stack:", error.stack);
+      logger.error("PR HANDLER ERROR");
+
+      logger.error(error.message);
+      logger.error(error.stack);
 
       throw error;
 
@@ -388,9 +433,13 @@ class WebhookController {
   }
 
 
+  // ======================================================
+  // FORMAT COMMENT
+  // ======================================================
+
   formatComment(results, totalFindings) {
 
-    logger.info("Formatting comment");
+    logger.info("Formatting comment...");
 
     if (totalFindings === 0) {
 
@@ -404,13 +453,18 @@ Powered by ZeroFalse`;
 
     return `## 🛡️ ZeroFalse Security Scan
 
-Found ${totalFindings} issues.
+Found ${totalFindings} vulnerabilities.
 
 Powered by ZeroFalse`;
 
   }
 
 }
+
+
+// ======================================================
+// EXPORT INSTANCE
+// ======================================================
 
 module.exports =
   new WebhookController();
