@@ -1,788 +1,477 @@
- 
-
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZeroFalse - AI Security for Code</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        slate: {
-                            850: '#1e293b',
-                            900: '#0f172a',
-                            950: '#020617',
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0b0f19;
-            color: #e2e8f0;
-        }
-        
-        /* Subtle grid background */
-        .bg-grid {
-            background-image: 
-                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-            background-size: 40px 40px;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0f172a;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #334155;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #475569;
-        }
+<title>ZeroFalse — AI Code Security</title>
 
-        /* Code editor specific */
-        .code-editor {
-            font-family: 'JetBrains Mono', monospace;
-            line-height: 1.6;
-            tab-size: 2;
-        }
+<script src="https://cdn.tailwindcss.com"></script>
 
-        /* Smooth transitions */
-        .transition-all-300 {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-        /* Glass effect - subtle */
-        .glass-subtle {
-            background: rgba(30, 41, 59, 0.4);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
+<style>
 
-        /* Scanning animation */
-        @keyframes scan-pulse {
-            0%, 100% { opacity: 0.4; }
-            50% { opacity: 1; }
-        }
-        .animate-scan {
-            animation: scan-pulse 2s ease-in-out infinite;
-        }
+body {
+    font-family: Inter, sans-serif;
+    background: #0a0a0a;
+    color: #e5e5e5;
+}
 
-        /* Line highlight */
-        .line-highlight {
-            background: rgba(239, 68, 68, 0.1);
-            border-left: 2px solid #ef4444;
-        }
+.mono {
+    font-family: "JetBrains Mono", monospace;
+}
 
-        /* Focus styles */
-        button:focus-visible, 
-        textarea:focus-visible,
-        select:focus-visible {
-            outline: 2px solid #3b82f6;
-            outline-offset: 2px;
-        }
+.glass {
+    background: rgba(18,18,18,.7);
+    border: 1px solid rgba(255,255,255,.06);
+}
 
-        /* Selection color */
-        ::selection {
-            background: rgba(59, 130, 246, 0.3);
-            color: white;
-        }
-    </style>
+.border-subtle {
+    border-color: rgba(255,255,255,.08);
+}
+
+.gradient-text {
+    background: linear-gradient(90deg,#fff,#9ca3af);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
+
+.button-primary {
+    background:#fff;
+    color:#000;
+}
+
+.button-primary:hover {
+    background:#e5e5e5;
+}
+
+.button-secondary {
+    border:1px solid rgba(255,255,255,.15);
+}
+
+.button-secondary:hover {
+    background:rgba(255,255,255,.05);
+}
+
+.card-hover:hover {
+    border-color:rgba(255,255,255,.25);
+}
+
+</style>
+
 </head>
-<body class="antialiased bg-grid min-h-screen">
 
-    <!-- Navigation -->
-    <nav class="fixed top-0 w-full z-50 glass-subtle border-b border-slate-800/50">
-        <div class="max-w-7xl mx-auto px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                        <i data-lucide="shield" class="w-5 h-5 text-white"></i>
-                    </div>
-                    <span class="text-lg font-semibold text-white tracking-tight">ZeroFalse</span>
-                </div>
-                
-                <div class="hidden md:flex items-center gap-8">
-                    <a href="#features" class="text-sm text-slate-400 hover:text-white transition-colors">Features</a>
-                    <a href="#scanner" class="text-sm text-slate-400 hover:text-white transition-colors">Scanner</a>
-                    <a href="#pricing" class="text-sm text-slate-400 hover:text-white transition-colors">Pricing</a>
-                    <a href="#compare" class="text-sm text-slate-400 hover:text-white transition-colors">Compare</a>
-                </div>
+<body>
 
-                <div class="flex items-center gap-4">
-                    <button onclick="scrollToSection('scanner')" class="hidden sm:block text-sm text-slate-300 hover:text-white transition-colors">
-                        Try Demo
-                    </button>
-                    <button class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all-300 flex items-center gap-2">
-                        <i data-lucide="github" class="w-4 h-4"></i>
-                        Install App
-                    </button>
-                </div>
-            </div>
-        </div>
-    </nav>
 
-    <!-- Hero Section -->
-    <section class="pt-32 pb-20 lg:pt-40 lg:pb-32 relative overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-b from-blue-900/10 via-transparent to-transparent pointer-events-none"></div>
-        
-        <div class="max-w-7xl mx-auto px-6 lg:px-8 relative">
-            <div class="max-w-3xl mx-auto text-center">
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700 mb-8">
-                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-                    <span class="text-xs text-slate-400 font-medium">Built for YC S25</span>
-                </div>
+<!-- NAV -->
 
-                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 tracking-tight leading-tight">
-                    Security for <span class="text-blue-500">AI-Generated Code</span>
-                </h1>
+<nav class="fixed w-full top-0 z-50 bg-black/60 backdrop-blur border-b border-subtle">
 
-                <p class="text-lg text-slate-400 mb-10 leading-relaxed max-w-2xl mx-auto">
-                    Automatically scan every pull request for vulnerabilities. 
-                    ZeroFalse learns from your feedback to eliminate false positives.
-                </p>
+<div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
 
-                <div class="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-                    <button onclick="scrollToSection('scanner')" class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3.5 rounded-xl font-semibold transition-all-300 hover:scale-[1.02] flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20">
-                        <i data-lucide="play" class="w-5 h-5"></i>
-                        Try Free Scanner
-                    </button>
-                    <button onclick="window.open('https://github.com/apps/zerofalse', '_blank')" class="glass-subtle hover:bg-slate-800 text-white px-8 py-3.5 rounded-xl font-semibold transition-all-300 hover:scale-[1.02] flex items-center justify-center gap-2">
-                        <i data-lucide="github" class="w-5 h-5"></i>
-                        Install on GitHub
-                    </button>
-                </div>
+<div class="flex items-center gap-3">
 
-                <!-- Stats -->
-                <div class="grid grid-cols-3 gap-8 max-w-2xl mx-auto pt-8 border-t border-slate-800">
-                    <div>
-                        <div class="text-3xl font-bold text-white mb-1" id="stat-prs">0</div>
-                        <div class="text-sm text-slate-500">PRs Scanned</div>
-                    </div>
-                    <div>
-                        <div class="text-3xl font-bold text-white mb-1" id="stat-vulns">0</div>
-                        <div class="text-sm text-slate-500">Vulnerabilities Found</div>
-                    </div>
-                    <div>
-                        <div class="text-3xl font-bold text-white mb-1" id="stat-accuracy">0%</div>
-                        <div class="text-sm text-slate-500">Accuracy Rate</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+<div class="w-8 h-8 bg-white text-black flex items-center justify-center font-bold rounded">
+Z
+</div>
 
-    <!-- Interactive Scanner Section -->
-    <section id="scanner" class="py-20 bg-slate-900/30 border-y border-slate-800/50">
-        <div class="max-w-6xl mx-auto px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <span class="text-blue-500 text-sm font-semibold tracking-wider uppercase mb-2 block">Live Demo</span>
-                <h2 class="text-3xl font-bold text-white mb-3">Try the Scanner</h2>
-                <p class="text-slate-400">Paste your code below and detect vulnerabilities in real-time</p>
-            </div>
+<div class="font-semibold">
+ZeroFalse
+</div>
 
-            <div class="grid lg:grid-cols-5 gap-6">
-                <!-- Code Editor -->
-                <div class="lg:col-span-3 glass-subtle rounded-xl overflow-hidden border border-slate-700/50">
-                    <div class="flex items-center justify-between px-4 py-3 bg-slate-800/50 border-b border-slate-700/50">
-                        <div class="flex items-center gap-3">
-                            <div class="flex gap-1.5">
-                                <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
-                                <div class="w-3 h-3 rounded-full bg-yellow-500/80"></div>
-                                <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
-                            </div>
-                            <select id="language-select" class="bg-slate-900 text-slate-300 text-xs rounded px-2 py-1 border border-slate-700 focus:border-blue-500 transition-colors">
-                                <option value="javascript">JavaScript</option>
-                                <option value="python">Python</option>
-                                <option value="java">Java</option>
-                                <option value="go">Go</option>
-                            </select>
-                        </div>
-                        <button onclick="loadExample()" class="text-xs text-slate-400 hover:text-blue-400 transition-colors flex items-center gap-1.5">
-                            <i data-lucide="refresh-cw" class="w-3 h-3"></i>
-                            Load Example
-                        </button>
-                    </div>
-                    
-                    <div class="relative bg-[#0d1117]">
-                        <div class="flex">
-                            <!-- Line Numbers -->
-                            <div class="text-slate-600 text-sm text-right pr-4 pl-4 py-4 select-none font-mono border-r border-slate-800 bg-slate-900/30" id="line-numbers">
-                                1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9<br>10<br>11<br>12<br>13<br>14<br>15
-                            </div>
-                            <!-- Text Area -->
-                            <textarea 
-                                id="codeInput" 
-                                class="code-editor flex-1 bg-transparent text-slate-300 text-sm p-4 resize-none focus:outline-none min-h-[320px] w-full"
-                                spellcheck="false"
-                                placeholder="// Paste your code here..."
+</div>
 
-                            ></textarea>
 
-                        </div>
-                        
-                        <!-- Scanning Overlay -->
-                        <div id="scan-overlay" class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm hidden items-center justify-center">
-                            <div class="text-center">
-                                <div class="w-12 h-12 rounded-full border-2 border-blue-500/30 border-t-blue-500 animate-spin mx-auto mb-4"></div>
-                                <p class="text-sm text-slate-300 font-medium mb-1">Analyzing code...</p>
-                                <p class="text-xs text-slate-500" id="scan-status">Parsing AST</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="px-4 py-3 bg-slate-800/30 border-t border-slate-700/50 flex items-center justify-between">
-                        <div class="text-xs text-slate-500" id="file-info">Ready to scan</div>
-                        <button onclick="performScan()" id="scan-btn" class="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg text-sm font-medium transition-all-300 flex items-center gap-2">
-                            <i data-lucide="shield" class="w-4 h-4"></i>
-                            <span>Scan for Vulnerabilities</span>
-                        </button>
-                    </div>
-                </div>
+<div class="hidden md:flex gap-8 text-sm text-neutral-400">
 
-                <!-- Results Panel -->
-                <div class="lg:col-span-2 glass-subtle rounded-xl border border-slate-700/50 flex flex-col min-h-[400px]">
-                    <div class="px-4 py-3 bg-slate-800/50 border-b border-slate-700/50 flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="file-search" class="w-4 h-4 text-slate-400"></i>
-                            <span class="text-sm font-medium text-white">Results</span>
-                        </div>
-                        <span id="result-badge" class="text-xs px-2 py-1 rounded-full bg-slate-800 text-slate-400">Waiting</span>
-                    </div>
-                    
-                    <div class="flex-1 p-4 overflow-auto" id="results-container">
-                        <div class="text-center py-12 text-slate-500" id="empty-state">
-                            <i data-lucide="shield-check" class="w-12 h-12 mx-auto mb-3 opacity-20"></i>
-                            <p class="text-sm">Enter code and click scan to analyze</p>
-                        </div>
+<a href="#scanner" class="hover:text-white">Scanner</a>
+<a href="#how" class="hover:text-white">How it works</a>
+<a href="#pricing" class="hover:text-white">Pricing</a>
 
-                        <div id="vulnerabilities-list" class="hidden space-y-3">
-                            <!-- Results injected here -->
-                        </div>
-                    </div>
+</div>
 
-                    <div id="results-footer" class="hidden px-4 py-3 bg-slate-800/30 border-t border-slate-700/50">
-                        <div class="flex items-center justify-between text-xs">
-                            <div class="flex gap-4">
-                                <span class="flex items-center gap-1.5">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                                    <span class="text-slate-400"><span class="text-red-400 font-semibold" id="count-critical">0</span> Critical</span>
-                                </span>
-                                <span class="flex items-center gap-1.5">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
-                                    <span class="text-slate-400"><span class="text-orange-400 font-semibold" id="count-high">0</span> High</span>
-                                </span>
-                            </div>
-                            <button onclick="clearResults()" class="text-slate-400 hover:text-white transition-colors">
-                                Clear
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
 
-    <!-- How It Works -->
-    <section id="features" class="py-20">
-        <div class="max-w-5xl mx-auto px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <span class="text-blue-500 text-sm font-semibold tracking-wider uppercase mb-2 block">How It Works</span>
-                <h2 class="text-3xl font-bold text-white">Three Steps to Secure Code</h2>
-            </div>
+<button class="button-primary px-4 py-2 rounded-lg text-sm font-medium">
+Install
+</button>
 
-            <div class="grid md:grid-cols-3 gap-8">
-                <div class="group">
-                    <div class="w-10 h-10 rounded-lg bg-blue-600/10 border border-blue-600/20 flex items-center justify-center mb-4 group-hover:bg-blue-600/20 transition-colors">
-                        <i data-lucide="zap" class="w-5 h-5 text-blue-500"></i>
-                    </div>
-                    <div class="text-xs text-blue-500 font-semibold mb-2">01</div>
-                    <h3 class="text-lg font-semibold text-white mb-2">Auto-Scan Every PR</h3>
-                    <p class="text-sm text-slate-400 leading-relaxed">
-                        Automatically scans pull requests for SQL injection, XSS, hardcoded secrets, and more.
-                    </p>
-                </div>
+</div>
 
-                <div class="group">
-                    <div class="w-10 h-10 rounded-lg bg-purple-600/10 border border-purple-600/20 flex items-center justify-center mb-4 group-hover:bg-purple-600/20 transition-colors">
-                        <i data-lucide="brain" class="w-5 h-5 text-purple-500"></i>
-                    </div>
-                    <div class="text-xs text-purple-500 font-semibold mb-2">02</div>
-                    <h3 class="text-lg font-semibold text-white mb-2">Learn From Feedback</h3>
-                    <p class="text-sm text-slate-400 leading-relaxed">
-                        Mark false positives with one click. Our AI learns your codebase and improves over time.
-                    </p>
-                </div>
+</nav>
 
-                <div class="group">
-                    <div class="w-10 h-10 rounded-lg bg-green-600/10 border border-green-600/20 flex items-center justify-center mb-4 group-hover:bg-green-600/20 transition-colors">
-                        <i data-lucide="shield-check" class="w-5 h-5 text-green-500"></i>
-                    </div>
-                    <div class="text-xs text-green-500 font-semibold mb-2">03</div>
-                    <h3 class="text-lg font-semibold text-white mb-2">Ship With Confidence</h3>
-                    <p class="text-sm text-slate-400 leading-relaxed">
-                        Catch vulnerabilities before production. Sleep soundly knowing your code is secure.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </section>
 
-    <!-- Comparison -->
-    <section id="compare" class="py-20 bg-slate-900/30 border-y border-slate-800/50">
-        <div class="max-w-4xl mx-auto px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <span class="text-blue-500 text-sm font-semibold tracking-wider uppercase mb-2 block">Comparison</span>
-                <h2 class="text-3xl font-bold text-white">Built Different</h2>
-            </div>
+<!-- HERO -->
 
-            <div class="glass-subtle rounded-xl border border-slate-700/50 overflow-hidden">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="border-b border-slate-700/50 bg-slate-800/30">
-                            <th class="text-left p-4 text-slate-400 font-medium">Feature</th>
-                            <th class="text-center p-4 text-slate-400 font-medium w-1/4">Snyk</th>
-                            <th class="text-center p-4 text-white font-semibold w-1/4 bg-blue-600/5">ZeroFalse</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-800/50">
-                        <tr class="hover:bg-slate-800/20 transition-colors">
-                            <td class="p-4 text-slate-300">Pricing (10 devs)</td>
-                            <td class="p-4 text-center text-slate-400">$590/mo</td>
-                            <td class="p-4 text-center bg-blue-600/5 text-blue-400 font-semibold">$49/mo</td>
-                        </tr>
-                        <tr class="hover:bg-slate-800/20 transition-colors">
-                            <td class="p-4 text-slate-300">False Positives</td>
-                            <td class="p-4 text-center text-slate-400">40%</td>
-                            <td class="p-4 text-center bg-blue-600/5 text-green-400 font-semibold">5%</td>
-                        </tr>
-                        <tr class="hover:bg-slate-800/20 transition-colors">
-                            <td class="p-4 text-slate-300">AI Understanding</td>
-                            <td class="p-4 text-center text-slate-500">Static rules</td>
-                            <td class="p-4 text-center bg-blue-600/5 text-green-400 font-semibold">Learns patterns</td>
-                        </tr>
-                        <tr class="hover:bg-slate-800/20 transition-colors">
-                            <td class="p-4 text-slate-300">LLM Dependency</td>
-                            <td class="p-4 text-center text-slate-500">Single vendor</td>
-                            <td class="p-4 text-center bg-blue-600/5 text-green-400 font-semibold">Multi-LLM</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </section>
+<section class="pt-40 pb-24 px-6 text-center">
 
-    <!-- Pricing -->
-    <section id="pricing" class="py-20">
-        <div class="max-w-5xl mx-auto px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <span class="text-blue-500 text-sm font-semibold tracking-wider uppercase mb-2 block">Pricing</span>
-                <h2 class="text-3xl font-bold text-white mb-3">Simple, Predictable Pricing</h2>
-                <p class="text-slate-400">No per-developer fees. No hidden costs.</p>
-            </div>
+<div class="max-w-4xl mx-auto">
 
-            <div class="grid md:grid-cols-3 gap-6">
-                <!-- Starter -->
-                <div class="glass-subtle rounded-xl p-6 border border-slate-700/50 hover:border-slate-600 transition-all-300">
-                    <h3 class="text-slate-300 font-semibold mb-2">Starter</h3>
-                    <div class="text-3xl font-bold text-white mb-1">Free</div>
-                    <p class="text-sm text-slate-500 mb-6">For open source</p>
-                    
-                    <ul class="space-y-3 mb-6 text-sm">
-                        <li class="flex items-center gap-2 text-slate-300">
-                            <i data-lucide="check" class="w-4 h-4 text-blue-500 flex-shrink-0"></i>
-                            Up to 5 developers
-                        </li>
-                        <li class="flex items-center gap-2 text-slate-300">
-                            <i data-lucide="check" class="w-4 h-4 text-blue-500 flex-shrink-0"></i>
-                            50 scans/day
-                        </li>
-                        <li class="flex items-center gap-2 text-slate-300">
-                            <i data-lucide="check" class="w-4 h-4 text-blue-500 flex-shrink-0"></i>
-                            Basic detection
-                        </li>
-                    </ul>
-                    
-                    <button class="w-full py-2.5 rounded-lg border border-slate-600 text-white font-medium hover:bg-slate-800 transition-all-300">
-                        Get Started
-                    </button>
-                </div>
+<h1 class="text-5xl md:text-6xl font-semibold gradient-text mb-6">
 
-                <!-- Team -->
-                <div class="glass-subtle rounded-xl p-6 border-2 border-blue-600/50 relative">
-                    <div class="absolute -top-3 left-1/2 -translate-x-1/2">
-                        <span class="bg-blue-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
-                            Most Popular
-                        </span>
-                    </div>
-                    
-                    <h3 class="text-slate-300 font-semibold mb-2">Team</h3>
-                    <div class="flex items-baseline gap-1 mb-1">
-                        <span class="text-3xl font-bold text-white">$49</span>
-                        <span class="text-slate-500 text-sm">/mo</span>
-                    </div>
-                    <p class="text-sm text-slate-500 mb-6">For growing startups</p>
-                    
-                    <ul class="space-y-3 mb-6 text-sm">
-                        <li class="flex items-center gap-2 text-slate-300">
-                            <i data-lucide="check" class="w-4 h-4 text-blue-500 flex-shrink-0"></i>
-                            Up to 20 developers
-                        </li>
-                        <li class="flex items-center gap-2 text-slate-300">
-                            <i data-lucide="check" class="w-4 h-4 text-blue-500 flex-shrink-0"></i>
-                            Unlimited scans
-                        </li>
-                        <li class="flex items-center gap-2 text-slate-300">
-                            <i data-lucide="check" class="w-4 h-4 text-blue-500 flex-shrink-0"></i>
-                            Learning engine
-                        </li>
-                        <li class="flex items-center gap-2 text-slate-300">
-                            <i data-lucide="check" class="w-4 h-4 text-blue-500 flex-shrink-0"></i>
-                            Slack integration
-                        </li>
-                    </ul>
-                    
-                    <button class="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium transition-all-300 shadow-lg shadow-blue-900/20">
-                        Start Free Trial
-                    </button>
-                </div>
+Security for AI-generated code
 
-                <!-- Enterprise -->
-                <div class="glass-subtle rounded-xl p-6 border border-slate-700/50 hover:border-slate-600 transition-all-300">
-                    <h3 class="text-slate-300 font-semibold mb-2">Enterprise</h3>
-                    <div class="flex items-baseline gap-1 mb-1">
-                        <span class="text-3xl font-bold text-white">$499</span>
-                        <span class="text-slate-500 text-sm">/mo</span>
-                    </div>
-                    <p class="text-sm text-slate-500 mb-6">For large teams</p>
-                    
-                    <ul class="space-y-3 mb-6 text-sm">
-                        <li class="flex items-center gap-2 text-slate-300">
-                            <i data-lucide="check" class="w-4 h-4 text-blue-500 flex-shrink-0"></i>
-                            Up to 200 developers
-                        </li>
-                        <li class="flex items-center gap-2 text-slate-300">
-                            <i data-lucide="check" class="w-4 h-4 text-blue-500 flex-shrink-0"></i>
-                            SSO & SAML
-                        </li>
-                        <li class="flex items-center gap-2 text-slate-300">
-                            <i data-lucide="check" class="w-4 h-4 text-blue-500 flex-shrink-0"></i>
-                            Custom rules
-                        </li>
-                    </ul>
-                    
-                    <button class="w-full py-2.5 rounded-lg border border-slate-600 text-white font-medium hover:bg-slate-800 transition-all-300">
-                        Contact Sales
-                    </button>
-                </div>
-            </div>
-        </div>
-    </section>
+</h1>
 
-    <!-- CTA -->
-    <section class="py-20 bg-slate-900/30 border-t border-slate-800/50">
-        <div class="max-w-3xl mx-auto px-6 lg:px-8 text-center">
-            <h2 class="text-3xl font-bold text-white mb-4">
-                Ready to secure your code?
-            </h2>
-            <p class="text-slate-400 mb-8">Join 50+ teams already using ZeroFalse</p>
-            
-            <button onclick="window.open('https://github.com/apps/zerofalse', '_blank')" class="bg-white hover:bg-slate-200 text-slate-900 px-8 py-3.5 rounded-xl font-semibold transition-all-300 hover:scale-[1.02] inline-flex items-center gap-2">
-                <i data-lucide="github" class="w-5 h-5"></i>
-                Install GitHub App
-            </button>
-        </div>
-    </section>
+<p class="text-neutral-400 text-lg mb-10">
 
-    <!-- Footer -->
-    <footer class="py-12 border-t border-slate-800/50">
-        <div class="max-w-7xl mx-auto px-6 lg:px-8">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-6">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                        <i data-lucide="shield" class="w-5 h-5 text-white"></i>
-                    </div>
-                    <div>
-                        <div class="text-white font-semibold">ZeroFalse</div>
-                        <div class="text-xs text-slate-500">AI security for code</div>
-                    </div>
-                </div>
-                
-                <div class="flex gap-6 text-sm">
-                    <a href="#" class="text-slate-400 hover:text-white transition-colors">GitHub</a>
-                    <a href="#" class="text-slate-400 hover:text-white transition-colors">Contact</a>
-                    <a href="#" class="text-slate-400 hover:text-white transition-colors">Privacy</a>
-                    <a href="#" class="text-slate-400 hover:text-white transition-colors">Terms</a>
-                </div>
-                
-                <div class="text-slate-600 text-sm">
-                    © 2025 ZeroFalse
-                </div>
-            </div>
-        </div>
-    </footer>
+Detect vulnerabilities instantly using AI-powered static analysis and semantic reasoning.
 
-    <script>
-        // Initialize Lucide icons
-        lucide.createIcons();
+</p>
 
-        // Example code
-        const exampleCode = `const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
-const app = express();
 
-// SQL Injection Vulnerability
-app.get('/user', (req, res) => {
-    const username = req.query.username;
-    const query = \\`SELECT * FROM users WHERE username = '\\${username}'\\`;
-    
-    db.all(query, (err, rows) => {
-        res.json(rows);
-    });
-});
+<div class="flex justify-center gap-4">
 
-// Command Injection
-app.get('/ping', (req, res) => {
-    const host = req.query.host;
-    exec(\\`ping -c 1 \\${host}\\`, (err, stdout) => {
-        res.send(stdout);
-    });
-});`;
+<button onclick="scrollToScanner()" class="button-primary px-8 py-3 rounded-lg font-medium">
 
-        // Load example on page load
-        window.addEventListener('load', () => {
-            document.getElementById('code-input').value = exampleCode;
-            updateLineNumbers();
-            animateCounters();
-        });
+Try Scanner
 
-        // Update line numbers
-        const codeInput = document.getElementById('code-input');
-        const lineNumbers = document.getElementById('line-numbers');
+</button>
 
-        codeInput.addEventListener('input', updateLineNumbers);
-        codeInput.addEventListener('scroll', () => {
-            lineNumbers.scrollTop = codeInput.scrollTop;
-        });
 
-        function updateLineNumbers() {
-            const lines = codeInput.value.split('\n').length;
-            lineNumbers.innerHTML = Array(lines).fill(0).map((_, i) => i + 1).join('<br>');
-        }
+<button class="button-secondary px-8 py-3 rounded-lg font-medium">
 
-        // Load example
-        function loadExample() {
-            codeInput.value = exampleCode;
-            updateLineNumbers();
-            clearResults();
-        }
+View Docs
 
-        // Scroll to section
-        function scrollToSection(id) {
-            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
-        }
+</button>
 
-        // Clear results
-        function clearResults() {
-            document.getElementById('empty-state').classList.remove('hidden');
-            document.getElementById('vulnerabilities-list').classList.add('hidden');
-            document.getElementById('results-footer').classList.add('hidden');
-            document.getElementById('result-badge').textContent = 'Waiting';
-            document.getElementById('result-badge').className = 'text-xs px-2 py-1 rounded-full bg-slate-800 text-slate-400';
-        }
+</div>
 
-        // Start scan
-        async function startScan() {
-            const code = codeInput.value.trim();
-            if (!code) {
-                alert('Please enter some code to scan');
-                return;
-            }
 
-            const btn = document.getElementById('scan-btn');
-            const overlay = document.getElementById('scan-overlay');
-            const status = document.getElementById('scan-status');
-            const fileInfo = document.getElementById('file-info');
-            
-            // Disable button and show overlay
-            btn.disabled = true;
-            overlay.classList.remove('hidden');
-            overlay.classList.add('flex');
-            fileInfo.textContent = 'Scanning...';
-            
-            // Simulate scanning steps
-            const steps = ['Parsing AST', 'Analyzing data flow', 'Detecting patterns', 'Validating results'];
-            for (let i = 0; i < steps.length; i++) {
-                status.textContent = steps[i];
-                await new Promise(r => setTimeout(r, 600));
-            }
+</div>
 
-            // Hide overlay
-            overlay.classList.add('hidden');
-            overlay.classList.remove('flex');
-            btn.disabled = false;
-            fileInfo.textContent = 'Scan complete';
+</section>
 
-            // Show results
-            showResults();
-        }
 
-        // Show scan results
-        function showResults() {
-            const vulnerabilities = [
-                {
-                    severity: 'critical',
-                    title: 'SQL Injection',
-                    line: 8,
-                    description: 'Unsanitized user input concatenated directly into SQL query',
-                    fix: 'Use parameterized queries'
-                },
-                {
-                    severity: 'high',
-                    title: 'Command Injection',
-                    line: 16,
-                    description: 'User input passed directly to exec() without validation',
-                    fix: 'Validate input against allowlist'
-                }
-            ];
+<!-- SCANNER -->
 
-            const list = document.getElementById('vulnerabilities-list');
-            list.innerHTML = '';
-            
-            let critical = 0, high = 0;
+<section id="scanner" class="px-6 pb-24">
 
-            vulnerabilities.forEach((vuln, index) => {
-                if (vuln.severity === 'critical') critical++;
-                if (vuln.severity === 'high') high++;
+<div class="max-w-6xl mx-auto">
 
-                const card = document.createElement('div');
-                card.className = 'glass-subtle rounded-lg p-4 border border-slate-700/50 hover:border-red-500/30 transition-all-300 cursor-pointer';
-                card.style.animation = `fadeIn 0.3s ease-out ${index * 0.1}s both`;
-                
-                const severityColors = {
-                    critical: 'bg-red-500/10 text-red-400 border-red-500/20',
-                    high: 'bg-orange-500/10 text-orange-400 border-orange-500/20'
-                };
 
-                card.innerHTML = `
-                    <div class="flex items-start justify-between mb-2">
-                        <div class="flex items-center gap-2">
-                            <span class="px-2 py-0.5 rounded text-xs font-medium border ${severityColors[vuln.severity]} uppercase">
-                                ${vuln.severity}
-                            </span>
-                            <span class="text-white font-medium text-sm">${vuln.title}</span>
-                        </div>
-                        <span class="text-xs text-slate-500 font-mono">Line ${vuln.line}</span>
-                    </div>
-                    <p class="text-xs text-slate-400 mb-3">${vuln.description}</p>
-                    <div class="flex items-center gap-2 text-xs text-green-400 bg-green-500/5 rounded px-2 py-1.5 border border-green-500/10">
-                        <i data-lucide="check-circle" class="w-3 h-3"></i>
-                        <span>${vuln.fix}</span>
-                    </div>
-                `;
-                
-                card.onclick = () => highlightLine(vuln.line);
-                list.appendChild(card);
-            });
+<div class="grid lg:grid-cols-5 gap-6">
 
-            document.getElementById('empty-state').classList.add('hidden');
-            list.classList.remove('hidden');
-            document.getElementById('results-footer').classList.remove('hidden');
-            
-            document.getElementById('count-critical').textContent = critical;
-            document.getElementById('count-high').textContent = high;
-            
-            const badge = document.getElementById('result-badge');
-            badge.textContent = `${vulnerabilities.length} issues found`;
-            badge.className = 'text-xs px-2 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20';
 
-            lucide.createIcons();
-            
-            // Update stats
-            animateCounters();
-        }
+<!-- EDITOR -->
 
-        // Highlight line in editor
-        function highlightLine(lineNum) {
-            const lines = codeInput.value.split('\n');
-            if (lineNum > 0 && lineNum <= lines.length) {
-                // Scroll to line
-                const lineHeight = 24; // approximate
-                codeInput.scrollTop = (lineNum - 1) * lineHeight;
-                
-                // Visual feedback
-                codeInput.style.background = 'rgba(239, 68, 68, 0.05)';
-                setTimeout(() => {
-                    codeInput.style.background = 'transparent';
-                }, 300);
-            }
-        }
+<div class="lg:col-span-3 glass rounded-xl overflow-hidden">
 
-        // Animate counters
-        function animateCounters() {
-            animateValue('stat-prs', 0, 5, 1000);
-            animateValue('stat-vulns', 0, 31, 1500);
-            animateValue('stat-accuracy', 0, 95, 1000, '%');
-        }
 
-        function animateValue(id, start, end, duration, suffix = '') {
-            const obj = document.getElementById(id);
-            const range = end - start;
-            const minTimer = 50;
-            let stepTime = Math.abs(Math.floor(duration / range));
-            stepTime = Math.max(stepTime, minTimer);
-            
-            let startTime = new Date().getTime();
-            let endTime = startTime + duration;
-            let timer;
-            
-            function run() {
-                let now = new Date().getTime();
-                let remaining = Math.max((endTime - now) / duration, 0);
-                let value = Math.round(end - (remaining * range));
-                obj.innerHTML = value + suffix;
-                if (value == end) {
-                    clearInterval(timer);
-                }
-            }
-            
-            timer = setInterval(run, stepTime);
-            run();
-        }
+<div class="flex justify-between px-4 py-3 border-b border-subtle">
 
-        // Add fade-in animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(10px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
-        `;
-        document.head.appendChild(style);
-    </script>
- 
- <script src="js/app.js"></script>
+<div class="text-sm text-neutral-400">
+Scanner
+</div>
+
+<select id="language" class="bg-black border border-subtle rounded px-2 py-1 text-sm">
+
+<option value="javascript">JavaScript</option>
+<option value="python">Python</option>
+
+</select>
+
+</div>
+
+
+<div class="flex bg-black">
+
+<div id="lines" class="mono text-neutral-600 text-sm text-right pr-4 pl-4 py-4 border-r border-subtle select-none">
+1
+</div>
+
+<textarea
+id="code"
+class="mono flex-1 bg-transparent text-sm p-4 focus:outline-none min-h-[320px]"
+spellcheck="false"
+placeholder="// paste code here"
+></textarea>
+
+</div>
+
+
+<div class="flex justify-between items-center px-4 py-3 border-t border-subtle">
+
+<div id="status" class="text-xs text-neutral-500">
+Ready
+</div>
+
+<button
+onclick="scan()"
+id="scanBtn"
+class="button-primary px-6 py-2 rounded text-sm font-medium">
+
+Scan
+
+</button>
+
+</div>
+
+
+</div>
+
+
+<!-- RESULTS -->
+
+<div class="lg:col-span-2 glass rounded-xl flex flex-col">
+
+
+<div class="px-4 py-3 border-b border-subtle flex justify-between">
+
+<div class="text-sm">
+Results
+</div>
+
+<div id="badge" class="text-xs text-neutral-500">
+Waiting
+</div>
+
+</div>
+
+
+<div id="results" class="p-4 flex-1 text-sm text-neutral-400">
+
+Run a scan to see results
+
+</div>
+
+
+</div>
+
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- HOW IT WORKS -->
+
+<section id="how" class="px-6 pb-24">
+
+<div class="max-w-5xl mx-auto">
+
+
+<div class="text-center mb-16">
+
+<h2 class="text-3xl font-semibold mb-3">
+How it works
+</h2>
+
+<p class="text-neutral-400">
+AI-powered multi-layer vulnerability detection
+</p>
+
+</div>
+
+
+<div class="grid md:grid-cols-3 gap-6">
+
+
+<div class="glass p-6 rounded-xl card-hover">
+
+<div class="text-neutral-500 text-sm mb-2">
+01
+</div>
+
+<div class="font-medium mb-2">
+Parse code
+</div>
+
+<div class="text-neutral-400 text-sm">
+AST and semantic graph generation
+</div>
+
+</div>
+
+
+<div class="glass p-6 rounded-xl card-hover">
+
+<div class="text-neutral-500 text-sm mb-2">
+02
+</div>
+
+<div class="font-medium mb-2">
+Detect vulnerabilities
+</div>
+
+<div class="text-neutral-400 text-sm">
+AI and pattern detection combined
+</div>
+
+</div>
+
+
+<div class="glass p-6 rounded-xl card-hover">
+
+<div class="text-neutral-500 text-sm mb-2">
+03
+</div>
+
+<div class="font-medium mb-2">
+Suggest fixes
+</div>
+
+<div class="text-neutral-400 text-sm">
+Actionable remediation guidance
+</div>
+
+</div>
+
+
+</div>
+
+</div>
+
+</section>
+
+
+
+<!-- SCRIPT -->
+
+
+<script>
+
+
+const API = "https://zerofalse-production.up.railway.app/api"
+
+
+const code = document.getElementById("code")
+const lines = document.getElementById("lines")
+
+
+code.addEventListener("input", updateLines)
+code.addEventListener("scroll", () => lines.scrollTop = code.scrollTop)
+
+
+function updateLines(){
+
+const count = code.value.split("\n").length
+
+lines.innerHTML = Array(count)
+.fill(0)
+.map((_,i)=>i+1)
+.join("<br>")
+
+}
+
+
+function scrollToScanner(){
+document.getElementById("scanner").scrollIntoView({behavior:"smooth"})
+}
+
+
+async function scan(){
+
+
+const btn = document.getElementById("scanBtn")
+const status = document.getElementById("status")
+const results = document.getElementById("results")
+const badge = document.getElementById("badge")
+
+
+if(!code.value.trim()){
+alert("Enter code")
+return
+}
+
+
+btn.disabled = true
+status.innerText = "Scanning..."
+
+
+try{
+
+
+const res = await fetch(API + "/scan",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+
+code:code.value,
+language:"javascript",
+filename:"input.js"
+
+})
+
+})
+
+
+const data = await res.json()
+
+
+if(!data.findings || data.findings.length === 0){
+
+results.innerHTML =
+"<div class='text-green-400'>No vulnerabilities</div>"
+
+badge.innerText = "Secure"
+
+}
+
+
+else{
+
+
+badge.innerText =
+data.findings.length + " issues"
+
+
+results.innerHTML = data.findings.map(v => `
+
+<div class="mb-4 border border-subtle rounded-lg p-3">
+
+<div class="text-red-400 text-xs uppercase">
+${v.severity}
+</div>
+
+<div class="text-white font-medium">
+${v.type}
+</div>
+
+<div class="text-neutral-400 text-xs">
+Line ${v.line}
+</div>
+
+<div class="text-green-400 text-xs mt-1">
+${v.fix || ""}
+</div>
+
+</div>
+
+`).join("")
+
+}
+
+
+status.innerText = "Done"
+
+
+}catch(e){
+
+status.innerText = "Error"
+
+}
+
+
+btn.disabled = false
+
+
+}
+
+
+updateLines()
+
+
+</script>
+
+
 </body>
 </html>
-
