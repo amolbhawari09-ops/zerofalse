@@ -69,22 +69,11 @@ app.use(cors({
 // =====================================================
 
 app.use(express.json({
-
   limit: '10mb',
-
   verify: (req, res, buf) => {
-
-    // Save raw buffer for GitHub signature verification
-    if (buf && buf.length) {
-
-      req.rawBody = buf;
-
-    }
-
+    req.rawBody = buf;
   }
-
 }));
-
 
 app.use(express.urlencoded({
 
