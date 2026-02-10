@@ -11,9 +11,9 @@ const logger = require('./utils/logger');
 const app = express();
 
 
-// ========================================
-// HEALTHCHECK (Railway required)
-// ========================================
+// =====================================================
+// HEALTHCHECK (Required by Railway)
+// =====================================================
 
 app.get('/health', (req, res) => {
 
@@ -27,9 +27,9 @@ app.get('/health', (req, res) => {
 });
 
 
-// ========================================
-// ROOT ENDPOINT (Railway fallback)
-// ========================================
+// =====================================================
+// ROOT ENDPOINT
+// =====================================================
 
 app.get('/', (req, res) => {
 
@@ -42,13 +42,19 @@ app.get('/', (req, res) => {
 });
 
 
-// ========================================
-// CORS
-// ========================================
+// =====================================================
+// CORS CONFIGURATION
+// =====================================================
 
 app.use(cors({
   origin: '*',
-  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  methods: [
+    'GET',
+    'POST',
+    'PUT',
+    'DELETE',
+    'OPTIONS'
+  ],
   allowedHeaders: [
     'Content-Type',
     'Authorization',
@@ -58,43 +64,55 @@ app.use(cors({
 }));
 
 
-// ========================================
-// IMPORTANT: DO NOT use express.raw here
-// webhook raw parsing is handled in routes/webhook.js
-// ========================================
-
-
-// ========================================
-// NORMAL JSON PARSER
-// ========================================
+// =====================================================
+// CRITICAL FIX: PRESERVE RAW BODY FOR GITHUB WEBHOOK
+// =====================================================
 
 app.use(express.json({
-  limit: '10mb'
+
+  limit: '10mb',
+
+  verify: (req, res, buf) => {
+
+    // Save raw buffer for GitHub signature verification
+    if (buf && buf.length) {
+
+      req.rawBody = buf;
+
+    }
+
+  }
+
 }));
+
 
 app.use(express.urlencoded({
+
   extended: true,
   limit: '10mb'
+
 }));
 
 
-// ========================================
+// =====================================================
 // API ROUTES
-// ========================================
+// =====================================================
 
 app.use('/api', routes);
 
 
-// ========================================
-// STATIC FRONTEND (optional)
-// ========================================
+// =====================================================
+// STATIC FRONTEND SUPPORT
+// =====================================================
 
 const frontendPath =
   path.join(__dirname, '../../frontend');
 
+
 if (fs.existsSync(frontendPath)) {
 
   app.use(express.static(frontendPath));
+
 
   app.get('/app', (req, res) => {
 
@@ -107,33 +125,39 @@ if (fs.existsSync(frontendPath)) {
 }
 
 
-// ========================================
+// =====================================================
 // 404 HANDLER
-// ========================================
+// =====================================================
 
 app.use((req, res) => {
 
   res.status(404).json({
+
     error: 'Route not found',
     path: req.originalUrl
+
   });
 
 });
 
 
-// ========================================
+// =====================================================
 // GLOBAL ERROR HANDLER
-// ========================================
+// =====================================================
 
 app.use((err, req, res, next) => {
 
   logger.error('SERVER ERROR:', {
+
     message: err.message,
     stack: err.stack
+
   });
 
   res.status(500).json({
+
     error: 'Internal Server Error'
+
   });
 
 });
