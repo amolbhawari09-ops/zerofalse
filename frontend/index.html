@@ -10,454 +10,214 @@
 
 <style>
 
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-}
-
 :root{
-
 --primary:#7c3aed;
---primary-light:#a78bfa;
 --primary-dark:#5b21b6;
 --accent:#ec4899;
-
---bg-dark:#0a0a0f;
---bg-card:#1a1a24;
---bg-card-hover:#25253a;
-
---text-primary:#ffffff;
---text-secondary:#a1a1aa;
-
+--bg:#0a0a0f;
+--card:#1a1a24;
 --border:#27272a;
+--text:#ffffff;
+--text-secondary:#a1a1aa;
 --success:#10b981;
 --danger:#ef4444;
-
 }
 
 body{
-
-font-family:'Inter',sans-serif;
-background:var(--bg-dark);
-color:var(--text-primary);
-overflow-x:hidden;
-
+margin:0;
+font-family:Inter;
+background:var(--bg);
+color:var(--text);
 }
 
 .container{
-max-width:1400px;
+max-width:1100px;
 margin:auto;
-padding:0 32px;
-position:relative;
-z-index:1;
+padding:40px 20px;
+}
+
+button{
+cursor:pointer;
+border:none;
 }
 
 nav{
-
+background:rgba(10,10,15,.7);
+border-bottom:1px solid var(--border);
 position:fixed;
-top:0;
 width:100%;
-z-index:1000;
-
-background:rgba(10,10,15,0.75);
-backdrop-filter:blur(20px);
-
-border-bottom:1px solid rgba(124,58,237,0.15);
-
+top:0;
 }
 
-.nav-container{
-
+.nav-inner{
 display:flex;
 justify-content:space-between;
 align-items:center;
-padding:18px 32px;
-
+padding:18px 20px;
 }
 
 .logo{
-
-display:flex;
-align-items:center;
-gap:12px;
-
 font-weight:800;
-font-size:22px;
-
-}
-
-.logo-icon{
-
-width:40px;
-height:40px;
-
-border-radius:10px;
-
-background:linear-gradient(135deg,var(--primary),var(--accent));
-
-display:flex;
-align-items:center;
-justify-content:center;
-
-font-weight:900;
-
-}
-
-.nav-links{
-
-display:flex;
-gap:40px;
-list-style:none;
-
-}
-
-.nav-links a{
-
-color:var(--text-secondary);
-text-decoration:none;
-font-weight:600;
-
-}
-
-.install-btn{
-
-padding:12px 28px;
-border:none;
-border-radius:10px;
-
-background:linear-gradient(135deg,var(--primary),var(--primary-dark));
-
-color:white;
-font-weight:700;
-
-cursor:pointer;
-
+font-size:20px;
 }
 
 .hero{
-
-padding:180px 0 140px;
+padding-top:140px;
 text-align:center;
-
 }
 
 .hero h1{
-
-font-size:64px;
-font-weight:900;
-
-margin-bottom:20px;
-
-}
-
-.gradient-text{
-
-background:linear-gradient(135deg,var(--primary-light),var(--accent));
--webkit-background-clip:text;
--webkit-text-fill-color:transparent;
-
+font-size:48px;
+margin-bottom:10px;
 }
 
 .hero p{
-
 color:var(--text-secondary);
-font-size:20px;
-max-width:700px;
-margin:auto;
-
 }
 
-.hero-buttons{
-
-margin-top:40px;
+.stats{
 display:flex;
 gap:20px;
 justify-content:center;
-
+margin-top:30px;
 }
 
-.btn-primary{
-
-padding:18px 40px;
-border:none;
-border-radius:14px;
-
-background:linear-gradient(135deg,var(--primary),var(--primary-dark));
-
-color:white;
-font-weight:700;
-cursor:pointer;
-
-}
-
-.btn-secondary{
-
-padding:18px 40px;
-border-radius:14px;
-border:1px solid var(--border);
-
-background:var(--bg-card);
-
-color:white;
-cursor:pointer;
-
-}
-
-<style>
-
-.stats{
-
-padding:80px 0;
-
-}
-
-.stats-grid{
-
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:32px;
-
-}
-
-.stat-card{
-
-background:var(--bg-card);
-border-radius:20px;
-padding:40px;
+.stat{
+background:var(--card);
+padding:20px;
+border-radius:12px;
 text-align:center;
-
 }
 
 .stat-number{
-
-font-size:48px;
-font-weight:900;
-
+font-size:28px;
+font-weight:700;
 }
 
-.stat-label{
-
-color:var(--text-secondary);
-
+.scanner{
+margin-top:60px;
+background:var(--card);
+padding:25px;
+border-radius:14px;
 }
 
-.scanner-section{
-
-padding:100px 0;
-
-}
-
-.scanner-container{
-
-background:var(--bg-card);
-padding:48px;
-border-radius:24px;
-
-}
-
-.language-select{
-
-padding:10px;
-background:var(--bg-card);
+textarea{
+width:100%;
+height:200px;
+background:#0d0d12;
 color:white;
 border:1px solid var(--border);
-
+border-radius:8px;
+padding:10px;
 }
 
-.code-area{
-
-width:100%;
-height:300px;
-
-background:#0d0d12;
-border:none;
-color:white;
-
-padding:20px;
-
-}
-
-.scan-button{
-
-padding:14px 36px;
+.scan-btn{
 background:linear-gradient(135deg,var(--primary),var(--primary-dark));
-border:none;
 color:white;
-border-radius:12px;
-cursor:pointer;
-
+padding:12px 25px;
+border-radius:8px;
+margin-top:15px;
 }
 
-.results-section{
+.results{
+margin-top:20px;
+background:#111;
+padding:20px;
+border-radius:10px;
+}
 
-margin-top:32px;
-background:var(--bg-card);
-padding:32px;
-border-radius:16px;
+.vuln{
+border:1px solid var(--danger);
+padding:10px;
+margin-bottom:10px;
+border-radius:6px;
+}
 
+.ok{
+color:var(--success);
+}
+
+.error{
+color:var(--danger);
 }
 
 </style>
-
 </head>
+
 <body>
 
+
 <nav>
-
-<div class="nav-container">
-
-<div class="logo">
-
-<div class="logo-icon">Z</div>
-ZeroFalse
-
+<div class="nav-inner container">
+<div class="logo">ZeroFalse</div>
+<button class="scan-btn">Install App</button>
 </div>
-
-<ul class="nav-links">
-
-<li><a href="#scanner">Scanner</a></li>
-<li><a href="#features">Features</a></li>
-<li><a href="#pricing">Pricing</a></li>
-
-</ul>
-
-<button class="install-btn">
-Install App
-</button>
-
-</div>
-
 </nav>
 
-<section class="hero">
 
-<div class="container">
+<div class="container hero">
 
-<h1>
-Security for
-<br>
-<span class="gradient-text">
-AI-Generated Code
-</span>
-</h1>
+<h1>Security for AI-Generated Code</h1>
 
-<p>
-Automatically detect vulnerabilities before production
-</p>
+<p>Detect vulnerabilities instantly using AI security analysis.</p>
 
-<div class="hero-buttons">
 
-<button class="btn-primary">
-Try Free Scanner
-</button>
+<div class="stats">
 
-<button class="btn-secondary">
-Install on GitHub
-</button>
-
+<div class="stat">
+<div class="stat-number" id="stat-scans">0</div>
+<div>Total scans</div>
 </div>
 
+<div class="stat">
+<div class="stat-number" id="stat-vulns">0</div>
+<div>Vulnerabilities</div>
 </div>
 
-</section>
-
-<section class="stats">
-
-<div class="container">
-
-<div class="stats-grid">
-
-<div class="stat-card">
-<div class="stat-number" id="statScans">0</div>
-<div class="stat-label">PRs Scanned</div>
-</div>
-
-<div class="stat-card">
-<div class="stat-number" id="statVulns">0</div>
-<div class="stat-label">Vulnerabilities Found</div>
-</div>
-
-<div class="stat-card">
-<div class="stat-number" id="statAccuracy">0%</div>
-<div class="stat-label">Accuracy</div>
+<div class="stat">
+<div class="stat-number" id="stat-accuracy">0%</div>
+<div>Accuracy</div>
 </div>
 
 </div>
 
 </div>
 
-</section>
 
-<section id="scanner" class="scanner-section">
 
-<div class="container">
+<div class="container scanner">
 
-<div class="scanner-container">
-
-<select id="languageSelect" class="language-select">
-
+<select id="language">
 <option value="javascript">JavaScript</option>
 <option value="python">Python</option>
+<option value="typescript">TypeScript</option>
 <option value="java">Java</option>
-
+<option value="go">Go</option>
 </select>
 
-<br><br>
 
-<textarea id="codeInput" class="code-area"></textarea>
+<textarea id="code"></textarea>
 
-<br>
 
-<button onclick="runScan()" class="scan-button">
+<button class="scan-btn" onclick="runScan()" id="scanBtn">
 Scan Code
 </button>
 
-<div id="results" class="results-section">
 
-Run scan to see results
+<div class="results" id="results">
+Ready.
+</div>
+
 
 </div>
 
-</div>
 
-</div>
-
-</section>
-<section id="features">
-
-<div class="container">
-
-<h2>Features</h2>
-
-<p>Advanced AI security scanning engine</p>
-
-</div>
-
-</section>
-
-<section id="pricing">
-
-<div class="container">
-
-<h2>Pricing</h2>
-
-<p>Coming soon</p>
-
-</div>
-
-</section>
-
-<footer>
-
-<div class="container">
-
-© 2026 ZeroFalse
-
-</div>
-
-</footer>
 <script>
+
+
+/* ===============================
+API CONFIG
+=============================== */
 
 const API_BASE =
 location.hostname === "localhost"
@@ -465,71 +225,84 @@ location.hostname === "localhost"
 : "https://zerofalse-production.up.railway.app/api";
 
 
+
+/* ===============================
+EXTENSION MAP
+=============================== */
+
 function getExtension(lang){
 
-const map = {
-
+const map={
 javascript:"js",
 python:"py",
-java:"java"
-
+typescript:"ts",
+java:"java",
+go:"go"
 };
 
-return map[lang] || "txt";
+return map[lang]||"txt";
 
 }
 
+
+
+/* ===============================
+LOAD STATS
+=============================== */
 
 async function loadStats(){
 
 try{
 
-const res = await fetch(`${API_BASE}/scan`);
+const res=await fetch(API_BASE+"/scan");
 
-if(!res.ok) return;
+if(!res.ok)return;
 
-const data = await res.json();
+const data=await res.json();
 
-if(!data.stats) return;
+if(!data.stats)return;
 
-document.getElementById("statScans").textContent =
-data.stats.totalScans || 0;
+document.getElementById("stat-scans").innerText=data.stats.totalScans||0;
 
-document.getElementById("statVulns").textContent =
-data.stats.totalFindings || 0;
+document.getElementById("stat-vulns").innerText=data.stats.totalFindings||0;
 
-document.getElementById("statAccuracy").textContent =
-"100%";
+document.getElementById("stat-accuracy").innerText="100%";
 
 }
-catch(e){}
+catch{}
 
 }
 
+
+
+/* ===============================
+RUN SCAN
+=============================== */
 
 async function runScan(){
 
-const code =
-document.getElementById("codeInput").value;
+const btn=document.getElementById("scanBtn");
 
-const language =
-document.getElementById("languageSelect").value;
+const code=document.getElementById("code").value;
 
-const results =
-document.getElementById("results");
+const language=document.getElementById("language").value;
 
-if(!code){
+const results=document.getElementById("results");
 
-alert("Enter code first");
+
+if(!code.trim()){
+results.innerHTML="<div class='error'>Enter code first</div>";
 return;
-
 }
 
-results.innerHTML = "Scanning...";
+
+btn.disabled=true;
+btn.innerText="Scanning...";
+
 
 try{
 
-const res = await fetch(`${API_BASE}/scan`,{
+const res=await fetch(API_BASE+"/scan",{
 
 method:"POST",
 
@@ -539,78 +312,99 @@ headers:{
 
 body:JSON.stringify({
 
-code,
-language,
+code:code,
+
+language:language,
+
 filename:"input."+getExtension(language),
+
 repo:"frontend",
+
 prNumber:null
 
 })
 
 });
 
-const data = await res.json();
 
-displayResults(data.scan || data);
+if(!res.ok)
+throw new Error("Scan failed");
+
+
+const data=await res.json();
+
+displayResults(data.scan||data);
 
 loadStats();
 
 }
 catch(err){
 
-results.innerHTML =
-"Scan failed. Backend offline.";
+results.innerHTML="<div class='error'>Backend connection failed</div>";
 
 }
 
+
+btn.disabled=false;
+btn.innerText="Scan Code";
+
 }
 
+
+
+/* ===============================
+DISPLAY RESULTS
+=============================== */
 
 function displayResults(scan){
 
-const results =
-document.getElementById("results");
+const results=document.getElementById("results");
+
 
 if(!scan.findings || scan.findings.length===0){
 
-results.innerHTML =
-"No vulnerabilities found";
+results.innerHTML="<div class='ok'>No vulnerabilities found</div>";
 
 return;
 
 }
 
-let html = "";
+
+let html="";
+
 
 scan.findings.forEach(f=>{
 
-html += `
+html+=`
+<div class="vuln">
 
-<div style="margin-bottom:10px">
+<div><b>${f.type||"Vulnerability"}</b></div>
 
-<b>${f.type}</b>
-<br>
+<div>Line: ${f.line||"-"}</div>
 
-Line: ${f.line}
-
-<br>
-
-${f.description || ""}
+<div>${f.description||f.message||""}</div>
 
 </div>
-
 `;
 
 });
 
-results.innerHTML = html;
+
+results.innerHTML=html;
 
 }
 
 
+
+/* ===============================
+INIT
+=============================== */
+
 loadStats();
 
+
 </script>
+
 
 </body>
 </html>
