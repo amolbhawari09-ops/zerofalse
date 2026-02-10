@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>ZeroFalse — AI Code Security</title>
+<title>ZeroFalse — Security for AI-Generated Code</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 
@@ -12,137 +12,140 @@
 
 <style>
 
-body {
-    font-family: Inter, sans-serif;
-    background: #0a0a0a;
-    color: #e5e5e5;
+:root{
+--bg-main:#0f1117;
+--bg-secondary:#151821;
+--bg-card:#1b2130;
+--border:#262b3a;
+--accent:#7c5cff;
+--accent-soft:#7c5cff22;
+--text-main:#e6eaf2;
+--text-muted:#8b92a8;
 }
 
-.mono {
-    font-family: "JetBrains Mono", monospace;
+body{
+font-family:Inter;
+background: radial-gradient(circle at 20% 10%, #1a1f2e 0%, #0f1117 60%);
+color:var(--text-main);
 }
 
-.glass {
-    background: rgba(18,18,18,.7);
-    border: 1px solid rgba(255,255,255,.06);
+.card{
+background:var(--bg-card);
+border:1px solid var(--border);
+border-radius:14px;
 }
 
-.border-subtle {
-    border-color: rgba(255,255,255,.08);
+.glow{
+box-shadow:0 0 0 1px var(--accent-soft), 0 8px 30px rgba(0,0,0,0.4);
 }
 
-.gradient-text {
-    background: linear-gradient(90deg,#fff,#9ca3af);
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
+textarea{
+font-family:"JetBrains Mono";
 }
 
-.button-primary {
-    background:#fff;
-    color:#000;
+.fade-in{
+animation:fade 0.4s ease;
 }
 
-.button-primary:hover {
-    background:#e5e5e5;
-}
-
-.button-secondary {
-    border:1px solid rgba(255,255,255,.15);
-}
-
-.button-secondary:hover {
-    background:rgba(255,255,255,.05);
-}
-
-.card-hover:hover {
-    border-color:rgba(255,255,255,.25);
+@keyframes fade{
+from{opacity:0;transform:translateY(8px)}
+to{opacity:1;transform:translateY(0)}
 }
 
 </style>
-
 </head>
 
 <body>
 
-
 <!-- NAV -->
 
-<nav class="fixed w-full top-0 z-50 bg-black/60 backdrop-blur border-b border-subtle">
+<nav class="fixed top-0 w-full backdrop-blur border-b border-[#262b3a] z-50">
 
 <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
 
 <div class="flex items-center gap-3">
 
-<div class="w-8 h-8 bg-white text-black flex items-center justify-center font-bold rounded">
+<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center font-bold">
 Z
 </div>
 
-<div class="font-semibold">
-ZeroFalse
-</div>
+<span class="font-semibold">ZeroFalse</span>
 
 </div>
 
-
-<div class="hidden md:flex gap-8 text-sm text-neutral-400">
+<div class="hidden md:flex gap-8 text-sm text-[#8b92a8]">
 
 <a href="#scanner" class="hover:text-white">Scanner</a>
-<a href="#how" class="hover:text-white">How it works</a>
+<a href="#features" class="hover:text-white">Features</a>
 <a href="#pricing" class="hover:text-white">Pricing</a>
 
 </div>
 
-
-<button class="button-primary px-4 py-2 rounded-lg text-sm font-medium">
-Install
+<button class="bg-gradient-to-r from-violet-500 to-indigo-500 hover:opacity-90 px-4 py-2 rounded-lg text-sm font-medium">
+Install App
 </button>
 
 </div>
 
 </nav>
 
-
 <!-- HERO -->
 
-<section class="pt-40 pb-24 px-6 text-center">
+<section class="pt-36 pb-24 px-6">
 
-<div class="max-w-4xl mx-auto">
+<div class="max-w-4xl mx-auto text-center">
 
-<h1 class="text-5xl md:text-6xl font-semibold gradient-text mb-6">
+<h1 class="text-5xl md:text-6xl font-bold leading-tight mb-6">
 
-Security for AI-generated code
+Security for
+<span class="bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">
+AI-Generated Code
+</span>
 
 </h1>
 
-<p class="text-neutral-400 text-lg mb-10">
+<p class="text-[#8b92a8] text-lg mb-10">
 
-Detect vulnerabilities instantly using AI-powered static analysis and semantic reasoning.
+Automatically detect vulnerabilities in AI-generated code before production.
 
 </p>
 
+<div class="flex gap-4 justify-center flex-wrap">
 
-<div class="flex justify-center gap-4">
-
-<button onclick="scrollToScanner()" class="button-primary px-8 py-3 rounded-lg font-medium">
-
-Try Scanner
-
+<button onclick="scrollToScanner()" class="bg-gradient-to-r from-violet-500 to-indigo-500 px-8 py-3 rounded-lg font-medium hover:opacity-90">
+Try Free Scanner
 </button>
 
-
-<button class="button-secondary px-8 py-3 rounded-lg font-medium">
-
-View Docs
-
+<button class="border border-[#262b3a] px-8 py-3 rounded-lg hover:bg-[#1b2130]">
+Install on GitHub
 </button>
 
 </div>
 
+<!-- STATS -->
+
+<div class="grid grid-cols-3 gap-10 mt-16 max-w-xl mx-auto">
+
+<div>
+<div id="stat-prs" class="text-3xl font-bold">0</div>
+<div class="text-[#8b92a8] text-sm">PRs Scanned</div>
+</div>
+
+<div>
+<div id="stat-vulns" class="text-3xl font-bold">0</div>
+<div class="text-[#8b92a8] text-sm">Vulnerabilities Found</div>
+</div>
+
+<div>
+<div id="stat-acc" class="text-3xl font-bold">0%</div>
+<div class="text-[#8b92a8] text-sm">Accuracy</div>
+</div>
+
+</div>
 
 </div>
 
 </section>
-
 
 <!-- SCANNER -->
 
@@ -150,95 +153,71 @@ View Docs
 
 <div class="max-w-6xl mx-auto">
 
-
 <div class="grid lg:grid-cols-5 gap-6">
-
 
 <!-- EDITOR -->
 
-<div class="lg:col-span-3 glass rounded-xl overflow-hidden">
+<div class="lg:col-span-3 card glow">
 
+<div class="flex justify-between px-4 py-3 border-b border-[#262b3a]">
 
-<div class="flex justify-between px-4 py-3 border-b border-subtle">
-
-<div class="text-sm text-neutral-400">
-Scanner
-</div>
-
-<select id="language" class="bg-black border border-subtle rounded px-2 py-1 text-sm">
+<select id="language" class="bg-transparent text-sm">
 
 <option value="javascript">JavaScript</option>
 <option value="python">Python</option>
+<option value="java">Java</option>
 
 </select>
 
-</div>
-
-
-<div class="flex bg-black">
-
-<div id="lines" class="mono text-neutral-600 text-sm text-right pr-4 pl-4 py-4 border-r border-subtle select-none">
-1
-</div>
-
-<textarea
-id="code"
-class="mono flex-1 bg-transparent text-sm p-4 focus:outline-none min-h-[320px]"
-spellcheck="false"
-placeholder="// paste code here"
-></textarea>
-
-</div>
-
-
-<div class="flex justify-between items-center px-4 py-3 border-t border-subtle">
-
-<div id="status" class="text-xs text-neutral-500">
-Ready
-</div>
-
-<button
-onclick="scan()"
-id="scanBtn"
-class="button-primary px-6 py-2 rounded text-sm font-medium">
-
-Scan
-
+<button onclick="loadExample()" class="text-sm text-[#8b92a8] hover:text-white">
+Load example
 </button>
 
 </div>
 
+<div class="flex">
+
+<div id="lines" class="text-[#5c637d] px-4 py-4 text-sm border-r border-[#262b3a]">
+1
+</div>
+
+<textarea id="code" class="flex-1 bg-transparent p-4 text-sm outline-none min-h-[320px]"></textarea>
 
 </div>
 
+<div class="flex justify-between items-center px-4 py-3 border-t border-[#262b3a]">
+
+<span id="status" class="text-sm text-[#8b92a8]">
+Ready
+</span>
+
+<button id="scanBtn" onclick="scan()" class="bg-gradient-to-r from-violet-500 to-indigo-500 px-6 py-2 rounded-lg text-sm">
+Scan
+</button>
+
+</div>
+
+</div>
 
 <!-- RESULTS -->
 
-<div class="lg:col-span-2 glass rounded-xl flex flex-col">
+<div class="lg:col-span-2 card glow p-4">
 
+<div class="flex justify-between mb-4">
 
-<div class="px-4 py-3 border-b border-subtle flex justify-between">
+<span class="font-medium">Results</span>
 
-<div class="text-sm">
-Results
-</div>
-
-<div id="badge" class="text-xs text-neutral-500">
+<span id="badge" class="text-xs text-[#8b92a8]">
 Waiting
-</div>
+</span>
 
 </div>
 
-
-<div id="results" class="p-4 flex-1 text-sm text-neutral-400">
-
-Run a scan to see results
-
+<div id="results" class="text-sm text-[#8b92a8]">
+Run scan to see results
 </div>
 
-
 </div>
-
 
 </div>
 
@@ -246,80 +225,69 @@ Run a scan to see results
 
 </section>
 
+<!-- FEATURES -->
 
-<!-- HOW IT WORKS -->
+<section id="features" class="px-6 pb-24">
 
-<section id="how" class="px-6 pb-24">
+<div class="max-w-5xl mx-auto text-center mb-16">
 
-<div class="max-w-5xl mx-auto">
-
-
-<div class="text-center mb-16">
-
-<h2 class="text-3xl font-semibold mb-3">
-How it works
+<h2 class="text-3xl font-bold mb-4">
+How ZeroFalse Works
 </h2>
 
-<p class="text-neutral-400">
-AI-powered multi-layer vulnerability detection
+<p class="text-[#8b92a8]">
+Advanced AI analysis pipeline designed for modern AI-generated codebases
 </p>
 
 </div>
 
+<div class="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
 
-<div class="grid md:grid-cols-3 gap-6">
+<div class="card p-6">
 
-
-<div class="glass p-6 rounded-xl card-hover">
-
-<div class="text-neutral-500 text-sm mb-2">
+<div class="text-violet-400 font-bold mb-2">
 01
 </div>
 
-<div class="font-medium mb-2">
-Parse code
+<div class="font-semibold mb-2">
+Deep Static Analysis
 </div>
 
-<div class="text-neutral-400 text-sm">
-AST and semantic graph generation
+<div class="text-[#8b92a8] text-sm">
+AST parsing and pattern detection identifies vulnerabilities with high precision.
 </div>
 
 </div>
 
+<div class="card p-6">
 
-<div class="glass p-6 rounded-xl card-hover">
-
-<div class="text-neutral-500 text-sm mb-2">
+<div class="text-violet-400 font-bold mb-2">
 02
 </div>
 
-<div class="font-medium mb-2">
-Detect vulnerabilities
+<div class="font-semibold mb-2">
+AI Risk Classification
 </div>
 
-<div class="text-neutral-400 text-sm">
-AI and pattern detection combined
+<div class="text-[#8b92a8] text-sm">
+Machine learning evaluates exploitability and reduces false positives.
 </div>
 
 </div>
 
+<div class="card p-6">
 
-<div class="glass p-6 rounded-xl card-hover">
-
-<div class="text-neutral-500 text-sm mb-2">
+<div class="text-violet-400 font-bold mb-2">
 03
 </div>
 
-<div class="font-medium mb-2">
-Suggest fixes
+<div class="font-semibold mb-2">
+Actionable Fix Guidance
 </div>
 
-<div class="text-neutral-400 text-sm">
-Actionable remediation guidance
+<div class="text-[#8b92a8] text-sm">
+Clear remediation steps help developers fix vulnerabilities immediately.
 </div>
-
-</div>
-
 
 </div>
 
@@ -327,65 +295,79 @@ Actionable remediation guidance
 
 </section>
 
+<!-- PRICING -->
 
+<section id="pricing" class="px-6 pb-24">
+
+<div class="max-w-5xl mx-auto grid md:grid-cols-3 gap-6">
+
+<div class="card p-6">
+
+<div class="font-semibold mb-2">Starter</div>
+
+<div class="text-3xl font-bold mb-4">Free</div>
+
+</div>
+
+<div class="card p-6 border-violet-500">
+
+<div class="font-semibold mb-2">Team</div>
+
+<div class="text-3xl font-bold mb-4">$49/mo</div>
+
+</div>
+
+<div class="card p-6">
+
+<div class="font-semibold mb-2">Enterprise</div>
+
+<div class="text-3xl font-bold mb-4">$499/mo</div>
+
+</div>
+
+</div>
+
+</section>
 
 <!-- SCRIPT -->
 
-
 <script>
 
+const API="https://zerofalse-production.up.railway.app/api"
 
-const API = "https://zerofalse-production.up.railway.app/api"
-
-
-const code = document.getElementById("code")
-const lines = document.getElementById("lines")
-
-
-code.addEventListener("input", updateLines)
-code.addEventListener("scroll", () => lines.scrollTop = code.scrollTop)
-
+const code=document.getElementById("code")
+const lines=document.getElementById("lines")
 
 function updateLines(){
-
-const count = code.value.split("\n").length
-
-lines.innerHTML = Array(count)
-.fill(0)
-.map((_,i)=>i+1)
-.join("<br>")
-
+const count=code.value.split("\n").length
+lines.innerHTML=Array.from({length:count},(_,i)=>i+1).join("<br>")
 }
 
+code.addEventListener("input",updateLines)
 
-function scrollToScanner(){
-document.getElementById("scanner").scrollIntoView({behavior:"smooth"})
+function loadExample(){
+
+code.value=`const { exec } = require("child_process");
+
+exec(userInput);`
+
+updateLines()
+
 }
-
 
 async function scan(){
 
+const btn=document.getElementById("scanBtn")
+const status=document.getElementById("status")
+const results=document.getElementById("results")
+const badge=document.getElementById("badge")
 
-const btn = document.getElementById("scanBtn")
-const status = document.getElementById("status")
-const results = document.getElementById("results")
-const badge = document.getElementById("badge")
-
-
-if(!code.value.trim()){
-alert("Enter code")
-return
-}
-
-
-btn.disabled = true
-status.innerText = "Scanning..."
-
+btn.disabled=true
+status.textContent="Scanning..."
 
 try{
 
-
-const res = await fetch(API + "/scan",{
+const res=await fetch(API+"/scan",{
 
 method:"POST",
 
@@ -403,46 +385,24 @@ filename:"input.js"
 
 })
 
+const data=await res.json()
 
-const data = await res.json()
+if(!data.findings || data.findings.length===0){
 
+results.innerHTML="Secure"
+badge.textContent="Secure"
 
-if(!data.findings || data.findings.length === 0){
+}else{
 
-results.innerHTML =
-"<div class='text-green-400'>No vulnerabilities</div>"
+badge.textContent=data.findings.length+" issues"
 
-badge.innerText = "Secure"
+results.innerHTML=data.findings.map(v=>`
 
-}
+<div class="fade-in mb-3">
 
+<div class="text-red-400 text-xs">${v.type}</div>
 
-else{
-
-
-badge.innerText =
-data.findings.length + " issues"
-
-
-results.innerHTML = data.findings.map(v => `
-
-<div class="mb-4 border border-subtle rounded-lg p-3">
-
-<div class="text-red-400 text-xs uppercase">
-${v.severity}
-</div>
-
-<div class="text-white font-medium">
-${v.type}
-</div>
-
-<div class="text-neutral-400 text-xs">
-Line ${v.line}
-</div>
-
-<div class="text-green-400 text-xs mt-1">
-${v.fix || ""}
-</div>
+<div class="text-xs text-[#8b92a8]">Line ${v.line}</div>
 
 </div>
 
@@ -450,28 +410,26 @@ ${v.fix || ""}
 
 }
 
+}catch{
 
-status.innerText = "Done"
-
-
-}catch(e){
-
-status.innerText = "Error"
+results.innerHTML="Backend error"
 
 }
 
-
-btn.disabled = false
-
+btn.disabled=false
+status.textContent="Ready"
 
 }
 
+function scrollToScanner(){
+
+document.getElementById("scanner").scrollIntoView({behavior:"smooth"})
+
+}
 
 updateLines()
 
-
 </script>
-
 
 </body>
 </html>
