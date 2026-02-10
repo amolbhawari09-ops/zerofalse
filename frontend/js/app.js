@@ -1,12 +1,18 @@
 // =====================================================
-// ZERO FALSE FRONTEND APP.JS (PRODUCTION READY)
+// ZERO FALSE FRONTEND APP.JS — FULL PRODUCTION FIX
 // =====================================================
 
-// Detect environment automatically
+// =====================================================
+// API URL DETECTION (ROBUST)
+// =====================================================
+
 const API_URL =
-    window.location.hostname === "localhost"
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1"
         ? "http://localhost:3000/api"
         : "https://zerofalse-production.up.railway.app/api";
+
+console.log("Using API:", API_URL);
 
 // =====================================================
 // DOM ELEMENTS
@@ -19,23 +25,29 @@ const scanResult = document.getElementById("scanResult");
 const scanBtn = document.getElementById("scanBtn");
 
 // =====================================================
-// INITIALIZE APP
+// INITIALIZE
 // =====================================================
 
 document.addEventListener("DOMContentLoaded", () => {
 
-    console.log("ZeroFalse frontend initialized");
-    console.log("API URL:", API_URL);
+    console.log("Frontend initialized");
 
     updateLineNumbers();
+
     loadStats();
 
     if (codeInput) {
+
         codeInput.addEventListener("input", updateLineNumbers);
-        codeInput.addEventListener("scroll", syncScroll);
+
+        codeInput.addEventListener("scroll", () => {
+
+            lineNumbers.scrollTop = codeInput.scrollTop;
+
+        });
+
     }
 
-    // Auto refresh stats every 15 seconds
     setInterval(loadStats, 15000);
 
 });
@@ -48,56 +60,15 @@ function updateLineNumbers() {
 
     if (!codeInput || !lineNumbers) return;
 
-    const lines = codeInput.value.split("\n").length;
+    const count = codeInput.value.split("\n").length;
 
     lineNumbers.innerHTML =
-        Array.from({ length: lines }, (_, i) => i + 1).join("<br>");
-
-}
-
-function syncScroll() {
-
-    if (!codeInput || !lineNumbers) return;
-
-    lineNumbers.scrollTop = codeInput.scrollTop;
+        Array.from({ length: count }, (_, i) => i + 1).join("<br>");
 
 }
 
 // =====================================================
-// LOAD EXAMPLE CODE
-// =====================================================
-
-function loadExample() {
-
-    const examples = {
-
-        javascript: `const { exec } = require("child_process");
-
-function runCommand(userInput) {
-    exec(userInput, (err, stdout) => {
-        console.log(stdout);
-    });
-}`,
-
-        python: `import os
-
-def run(cmd):
-    os.system(cmd)`,
-
-        java: `Runtime.getRuntime().exec(userInput);`
-
-    };
-
-    const lang = languageSelect.value;
-
-    codeInput.value = examples[lang] || examples.javascript;
-
-    updateLineNumbers();
-
-}
-
-// =====================================================
-// PERFORM SCAN
+// SCAN FUNCTION
 // =====================================================
 
 async function performScan() {
@@ -106,7 +77,8 @@ async function performScan() {
 
     if (!code) {
 
-        showError("Please enter code first");
+        showError("Enter code first");
+
         return;
 
     }
@@ -117,7 +89,12 @@ async function performScan() {
 
     try {
 
-        console.log("Sending scan request to:", API_URL);
+        const controller = new AbortController();
+
+        const timeout = setTimeout(
+            () => controller.abort(),
+            15000
+        );
 
         const response = await fetch(`${API_URL}/scan`, {
 
@@ -135,21 +112,22 @@ async function performScan() {
                 repo: "frontend-demo",
                 prNumber: null
 
-            })
+            }),
+
+            signal: controller.signal
 
         });
 
-        if (!response.ok) {
+        clearTimeout(timeout);
 
-            throw new Error(`HTTP ${response.status}`);
+        if (!response.ok)
+            throw new Error(`Server error ${response.status}`);
 
-        }
+        const result = await response.json();
 
-        const data = await response.json();
+        console.log("Scan response:", result);
 
-        console.log("Scan result:", data);
-
-        const scan = data.scan || data;
+        const scan = result.scan || result;
 
         displayResults(scan);
 
@@ -158,10 +136,10 @@ async function performScan() {
     }
     catch (error) {
 
-        console.error("Scan failed:", error);
+        console.error(error);
 
         showError(
-            "Scan failed. Backend may be offline or unreachable."
+            "Backend offline or request failed"
         );
 
     }
@@ -184,6 +162,7 @@ function displayResults(scan) {
     if (!scan || scan.status === "failed") {
 
         showError(scan?.error || "Scan failed");
+
         return;
 
     }
@@ -193,7 +172,6 @@ function displayResults(scan) {
         scanResult.innerHTML = `
             <div class="success-box">
                 <h3>✅ No vulnerabilities found</h3>
-                <p>Your code is secure</p>
             </div>
         `;
 
@@ -201,25 +179,18 @@ function displayResults(scan) {
 
     }
 
-    let html = `
-        <h3>⚠️ Found ${scan.findings.length} vulnerabilities</h3>
-    `;
+    let html = `<h3>⚠️ ${scan.findings.length} vulnerabilities found</h3>`;
 
-    scan.findings.forEach(finding => {
+    scan.findings.forEach(f => {
 
         html += `
-            <div class="vulnerability-card ${finding.severity}">
-                
-                <strong>${finding.type}</strong>
-                
-                <p>${finding.description}</p>
-                
-                <code>${escapeHtml(finding.fix || "No fix provided")}</code>
-                
+            <div class="vulnerability-card ${f.severity}">
+                <strong>${f.type}</strong>
+                <p>${f.description}</p>
+                <code>${escapeHtml(f.fix || "")}</code>
                 <small>
-                    Line ${finding.line} • Confidence ${finding.confidence}%
+                    Line ${f.line} • Confidence ${f.confidence}%
                 </small>
-                
             </div>
         `;
 
@@ -230,30 +201,34 @@ function displayResults(scan) {
 }
 
 // =====================================================
-// LOAD STATS
+// STATS
 // =====================================================
 
 async function loadStats() {
 
     try {
 
-        const res = await fetch(`${API_URL}/scan`);
+        const response =
+            await fetch(`${API_URL}/scan`);
 
-        if (!res.ok) return;
+        if (!response.ok) return;
 
-        const data = await res.json();
+        const data = await response.json();
 
         if (!data.stats) return;
 
-        updateStat("heroTotalScans", data.stats.totalScans);
-        updateStat("heroVulnsFound", data.stats.totalFindings);
+        updateStat(
+            "heroTotalScans",
+            data.stats.totalScans
+        );
+
+        updateStat(
+            "heroVulnsFound",
+            data.stats.totalFindings
+        );
 
     }
-    catch {
-
-        // silent fail
-
-    }
+    catch {}
 
 }
 
@@ -261,16 +236,13 @@ function updateStat(id, value) {
 
     const el = document.getElementById(id);
 
-    if (el) {
-
+    if (el)
         el.textContent = value || 0;
-
-    }
 
 }
 
 // =====================================================
-// LOADING STATE
+// UI STATES
 // =====================================================
 
 function setLoading(state) {
@@ -280,6 +252,7 @@ function setLoading(state) {
     if (state) {
 
         scanBtn.disabled = true;
+
         scanBtn.innerText = "Scanning...";
 
         scanResult.innerHTML =
@@ -289,23 +262,18 @@ function setLoading(state) {
     else {
 
         scanBtn.disabled = false;
-        scanBtn.innerText = "Scan for Vulnerabilities";
+
+        scanBtn.innerText =
+            "Scan for Vulnerabilities";
 
     }
 
 }
 
-// =====================================================
-// ERROR DISPLAY
-// =====================================================
+function showError(msg) {
 
-function showError(message) {
-
-    scanResult.innerHTML = `
-        <div class="error-box">
-            ⚠️ ${message}
-        </div>
-    `;
+    scanResult.innerHTML =
+        `<div class="error-box">⚠️ ${msg}</div>`;
 
 }
 
@@ -315,22 +283,19 @@ function showError(message) {
 
 function getExtension(lang) {
 
-    const map = {
-
+    return {
         javascript: "js",
         python: "py",
         java: "java",
         typescript: "ts"
-
-    };
-
-    return map[lang] || "js";
+    }[lang] || "js";
 
 }
 
 function escapeHtml(text) {
 
-    const div = document.createElement("div");
+    const div =
+        document.createElement("div");
 
     div.textContent = text;
 
