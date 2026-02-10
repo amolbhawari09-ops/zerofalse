@@ -65,21 +65,31 @@ app.use(cors({
 
 
 // =====================================================
-// CRITICAL FIX: PRESERVE RAW BODY FOR GITHUB WEBHOOK
+// CRITICAL FIX: DO NOT PARSE JSON FOR WEBHOOK ROUTES
 // =====================================================
 
-app.use(express.json({
-  limit: '10mb',
-  verify: (req, res, buf) => {
-    req.rawBody = buf;
+app.use((req, res, next) => {
+
+  // Skip JSON parser for webhook
+  if (req.originalUrl.startsWith('/api/webhook')) {
+    return next();
   }
-}));
+
+  // Use JSON parser for all other routes
+  express.json({
+    limit: '10mb'
+  })(req, res, next);
+
+});
+
+
+// =====================================================
+// URL ENCODED PARSER
+// =====================================================
 
 app.use(express.urlencoded({
-
   extended: true,
   limit: '10mb'
-
 }));
 
 
@@ -97,11 +107,9 @@ app.use('/api', routes);
 const frontendPath =
   path.join(__dirname, '../../frontend');
 
-
 if (fs.existsSync(frontendPath)) {
 
   app.use(express.static(frontendPath));
-
 
   app.get('/app', (req, res) => {
 
@@ -121,10 +129,8 @@ if (fs.existsSync(frontendPath)) {
 app.use((req, res) => {
 
   res.status(404).json({
-
     error: 'Route not found',
     path: req.originalUrl
-
   });
 
 });
@@ -137,16 +143,12 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
 
   logger.error('SERVER ERROR:', {
-
     message: err.message,
     stack: err.stack
-
   });
 
   res.status(500).json({
-
     error: 'Internal Server Error'
-
   });
 
 });
