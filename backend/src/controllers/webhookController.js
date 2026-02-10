@@ -3,7 +3,6 @@ const GitHubService = require('../services/githubService');
 const ScannerService = require('../services/scannerService');
 const logger = require('../utils/logger');
 
-// Code file extensions to scan
 const CODE_EXTENSIONS = [
   '.js', '.jsx', '.ts', '.tsx',
   '.py', '.pyw',
@@ -20,272 +19,398 @@ const CODE_EXTENSIONS = [
 ];
 
 function shouldScanFile(filename) {
-  return CODE_EXTENSIONS.some(ext => 
+  if (!filename) return false;
+  return CODE_EXTENSIONS.some(ext =>
     filename.toLowerCase().endsWith(ext)
   );
 }
 
 class WebhookController {
 
+  // ========================================
+  // SIGNATURE VERIFY WITH DEBUG
+  // ========================================
+
   verifySignature(req) {
+
+    logger.info("🔐 Starting signature verification");
+
     try {
-      const signature = req.headers['x-hub-signature-256'];
-      const secret = process.env.GITHUB_WEBHOOK_SECRET;
+
+      const signature =
+        req.headers['x-hub-signature-256'];
+
+      const secret =
+        process.env.GITHUB_WEBHOOK_SECRET;
+
+      logger.info("Signature exists:", !!signature);
+      logger.info("Secret exists:", !!secret);
 
       if (!signature) {
-        logger.warn("Missing GitHub signature header");
+        logger.warn("❌ Missing GitHub signature header");
         return false;
       }
 
       if (!secret) {
-        logger.warn("Missing GITHUB_WEBHOOK_SECRET env");
+        logger.warn("❌ Missing webhook secret env");
         return false;
       }
 
       if (!Buffer.isBuffer(req.body)) {
-        logger.error("Webhook body is not raw buffer");
+        logger.error("❌ Body is NOT raw buffer");
+        logger.error("Body type:", typeof req.body);
         return false;
       }
 
-      const expectedSignature = 'sha256=' +
+      logger.info("Body is valid raw buffer");
+
+      const expectedSignature =
+        'sha256=' +
         crypto
           .createHmac('sha256', secret)
           .update(req.body)
           .digest('hex');
 
-      const sigBuffer = Buffer.from(signature);
-      const expectedBuffer = Buffer.from(expectedSignature);
+      const valid =
+        crypto.timingSafeEqual(
+          Buffer.from(signature),
+          Buffer.from(expectedSignature)
+        );
 
-      if (sigBuffer.length !== expectedBuffer.length)
-        return false;
+      logger.info("Signature valid:", valid);
 
-      return crypto.timingSafeEqual(sigBuffer, expectedBuffer);
+      return valid;
 
-    } catch (err) {
-      logger.error("Signature verification crash", err);
-      return false;
     }
+    catch (error) {
+
+      logger.error("💥 Signature verification crash");
+      logger.error(error.message);
+      logger.error(error.stack);
+
+      return false;
+
+    }
+
   }
 
+
+  // ========================================
+  // MAIN WEBHOOK ENTRY
+  // ========================================
+
   async handleGitHubWebhook(req, res) {
-    logger.info("📩 GitHub webhook received");
+
+    logger.info("=================================");
+    logger.info("📩 WEBHOOK RECEIVED");
+    logger.info("Time:", new Date().toISOString());
+    logger.info("=================================");
 
     try {
+
+      logger.info("Step 1: Verifying signature...");
+
       if (!this.verifySignature(req)) {
-        logger.warn("Invalid webhook signature");
+
+        logger.warn("❌ Signature invalid");
         return res.status(200).send("Ignored");
+
       }
+
+      logger.info("✅ Signature verified");
+
+
+      logger.info("Step 2: Parsing payload...");
 
       let payload;
+
       try {
-        payload = JSON.parse(req.body.toString());
-      } catch (parseError) {
-        logger.error("Payload parse failed", parseError);
+
+        payload =
+          JSON.parse(req.body.toString());
+
+        logger.info("✅ Payload parsed");
+
+      }
+      catch (parseError) {
+
+        logger.error("❌ Payload parse failed");
+        logger.error(parseError.message);
+
         return res.status(200).send("Invalid payload");
+
       }
 
-      const event = req.headers['x-github-event'];
-      logger.info(`Event: ${event}, Action: ${payload?.action}`);
+
+      const event =
+        req.headers['x-github-event'];
+
+      logger.info("Event type:", event);
+      logger.info("Action:", payload?.action);
+
+
+      // ========================================
+      // INSTALL EVENT DEBUG
+      // ========================================
+
+      if (event === "installation") {
+
+        logger.info("🔥 INSTALL EVENT DETECTED");
+
+        const installationId =
+          payload.installation?.id;
+
+        logger.info("Installation ID:", installationId);
+
+      }
+
+
+      // ========================================
+      // PR EVENT DEBUG
+      // ========================================
 
       if (event === "pull_request") {
-        // DEBUG: Don't use safe wrapper, let errors bubble up
-        logger.info("🔥 About to handle PR - entering handler");
+
+        logger.info("🔥 PULL REQUEST EVENT DETECTED");
+
         await this.handlePullRequest(payload);
-        logger.info("✅ PR handler completed successfully");
+
       }
+
+
+      logger.info("✅ Webhook completed");
 
       return res.status(200).send("OK");
 
-    } catch (fatalError) {
-      // DEBUG: Log full error
-      logger.error("💀 WEBHOOK FATAL ERROR:");
-      logger.error(fatalError.message);
-      logger.error(fatalError.stack);
-      return res.status(200).send("Error: " + fatalError.message);
     }
+    catch (fatalError) {
+
+      logger.error("💀 WEBHOOK FATAL ERROR");
+      logger.error("Message:", fatalError.message);
+      logger.error("Stack:", fatalError.stack);
+
+      return res.status(200).send("Error");
+
+    }
+
   }
 
+
+  // ========================================
+  // PR HANDLER WITH FULL DEBUG
+  // ========================================
+
   async handlePullRequest(payload) {
+
+    logger.info("=================================");
     logger.info("🚀 PR HANDLER STARTED");
+    logger.info("=================================");
 
-    const action = payload.action;
-    logger.info(`Action: ${action}`);
-
-    if (!["opened", "synchronize"].includes(action)) {
-      logger.info(`Skipping action: ${action}`);
-      return;
-    }
-
-    // DEBUG: Check all required fields
-    logger.info("Checking payload fields...");
-    logger.info(`repository: ${!!payload.repository}`);
-    logger.info(`repository.owner: ${!!payload.repository?.owner}`);
-    logger.info(`installation: ${!!payload.installation}`);
-    logger.info(`pull_request: ${!!payload.pull_request}`);
-
-    const installationId = payload.installation?.id;
-    if (!installationId) {
-      throw new Error("Missing installation ID");
-    }
-    logger.info(`Installation ID: ${installationId}`);
-
-    const owner = payload.repository.owner.login;
-    const repo = payload.repository.name;
-    const repoFullName = payload.repository.full_name;
-    const prNumber = payload.pull_request.number;
-    const ref = payload.pull_request.head.sha;
-
-    logger.info(`Repo: ${repoFullName}, PR: #${prNumber}`);
-
-    // =====================================================
-    // GET TOKEN
-    // =====================================================
-
-    logger.info("🔑 Getting installation token...");
-    let token;
     try {
-      token = await GitHubService.getInstallationToken(installationId);
-      logger.info(`✅ Token acquired: ${token.substring(0, 10)}...`);
-    } catch (tokenErr) {
-      logger.error("❌ Token failed:", tokenErr.message);
-      throw tokenErr;
-    }
 
-    // =====================================================
-    // GET FILES
-    // =====================================================
+      const action = payload.action;
 
-    logger.info("📁 Getting PR files...");
-    let files;
-    try {
-      files = await GitHubService.getPullRequestFiles(owner, repo, prNumber, token);
-      logger.info(`✅ Found ${files.length} files`);
-    } catch (filesErr) {
-      logger.error("❌ Get files failed:", filesErr.message);
-      throw filesErr;
-    }
+      logger.info("PR Action:", action);
 
-    // Filter to code files
-    const codeFiles = files.filter(f => shouldScanFile(f.filename));
-    logger.info(`Code files to scan: ${codeFiles.length}`);
+      if (!["opened", "synchronize"].includes(action)) {
 
-    if (codeFiles.length === 0) {
-      logger.info("No code files to scan - skipping");
-      return;
-    }
+        logger.info("Skipping unsupported action");
+        return;
 
-    // =====================================================
-    // SCAN FILES
-    // =====================================================
+      }
 
-    const results = [];
-    let totalFindings = 0;
+      const installationId =
+        payload.installation?.id;
 
-    for (const file of codeFiles) {
-      try {
-        logger.info(`🔍 Scanning: ${file.filename}`);
+      logger.info("Installation ID:", installationId);
 
-        const content = await GitHubService.getFileContent(
-          owner, repo, file.filename, ref, token
+      if (!installationId)
+        throw new Error("Installation ID missing");
+
+
+      const owner =
+        payload.repository.owner.login;
+
+      const repo =
+        payload.repository.name;
+
+      const repoFullName =
+        payload.repository.full_name;
+
+      const prNumber =
+        payload.pull_request.number;
+
+      const ref =
+        payload.pull_request.head.sha;
+
+
+      logger.info("Repository:", repoFullName);
+      logger.info("PR Number:", prNumber);
+      logger.info("Commit SHA:", ref);
+
+
+      // ========================================
+      // TOKEN DEBUG
+      // ========================================
+
+      logger.info("Step 3: Requesting installation token");
+
+      const token =
+        await GitHubService.getInstallationToken(
+          installationId
         );
+
+      logger.info("✅ Token received");
+
+
+      // ========================================
+      // FILE FETCH DEBUG
+      // ========================================
+
+      logger.info("Step 4: Fetching PR files");
+
+      const files =
+        await GitHubService.getPullRequestFiles(
+          owner,
+          repo,
+          prNumber,
+          token
+        );
+
+      logger.info("Files received:", files.length);
+
+
+      const codeFiles =
+        files.filter(f =>
+          shouldScanFile(f.filename)
+        );
+
+      logger.info("Code files count:", codeFiles.length);
+
+
+      if (codeFiles.length === 0) {
+
+        logger.info("No code files to scan");
+        return;
+
+      }
+
+
+      // ========================================
+      // SCAN DEBUG
+      // ========================================
+
+      let totalFindings = 0;
+      const results = [];
+
+      for (const file of codeFiles) {
+
+        logger.info("Scanning file:", file.filename);
+
+        const content =
+          await GitHubService.getFileContent(
+            owner,
+            repo,
+            file.filename,
+            ref,
+            token
+          );
 
         if (!content) {
-          logger.warn(`No content for: ${file.filename}`);
+
+          logger.warn("No content:", file.filename);
           continue;
+
         }
 
-        logger.info(`Content length: ${content.length} chars`);
+        const scan =
+          await ScannerService.scanCode(
+            content,
+            file.filename,
+            repoFullName,
+            prNumber
+          );
 
-        const scan = await ScannerService.scanCode(
-          content,
-          file.filename,
-          repoFullName,
-          prNumber,
-          'javascript'
-        );
+        const findings =
+          scan?.findings || [];
 
-        const findingCount = scan?.findings?.length || 0;
-        totalFindings += findingCount;
+        totalFindings += findings.length;
 
         results.push({
           filename: file.filename,
-          findings: scan?.findings || []
+          findings
         });
 
-        logger.info(`✅ Scanned ${file.filename}: ${findingCount} findings`);
+        logger.info(
+          "Findings:",
+          findings.length
+        );
 
-      } catch (fileErr) {
-        logger.error(`❌ File scan failed ${file.filename}:`, fileErr.message);
-        // Continue with other files
       }
-    }
 
-    logger.info(`Scan complete: ${results.length} files, ${totalFindings} total findings`);
 
-    // =====================================================
-    // POST COMMENT
-    // =====================================================
+      logger.info("Total findings:", totalFindings);
 
-    try {
-      const comment = this.formatComment(results, totalFindings);
-      logger.info("💬 Posting comment...");
-      logger.info(`Comment length: ${comment.length} chars`);
+
+      // ========================================
+      // COMMENT DEBUG
+      // ========================================
+
+      logger.info("Step 5: Posting PR comment");
+
+      const comment =
+        this.formatComment(
+          results,
+          totalFindings
+        );
 
       await GitHubService.createPRComment(
-        owner, repo, prNumber, comment, token
+        owner,
+        repo,
+        prNumber,
+        comment,
+        token
       );
 
       logger.info("✅ Comment posted successfully");
 
-    } catch (commentErr) {
-      logger.error("❌ Comment posting failed:", commentErr.message);
-      logger.error(commentErr.stack);
-      throw commentErr;
+    }
+    catch (error) {
+
+      logger.error("💥 PR HANDLER CRASH");
+      logger.error("Message:", error.message);
+      logger.error("Stack:", error.stack);
+
+      throw error;
+
     }
 
-    logger.info("🎉 PR HANDLER COMPLETED");
   }
 
+
   formatComment(results, totalFindings) {
+
+    logger.info("Formatting comment");
+
     if (totalFindings === 0) {
+
       return `## 🛡️ ZeroFalse Security Scan
 
-✅ **No vulnerabilities found** in this PR.
+No vulnerabilities found.
 
----
-*Powered by [ZeroFalse](https://zerofalse.vercel.app)*`;
+Powered by ZeroFalse`;
+
     }
 
-    let comment = `## 🛡️ ZeroFalse Security Scan
+    return `## 🛡️ ZeroFalse Security Scan
 
-⚠️ **Found ${totalFindings} potential security issue(s)**
+Found ${totalFindings} issues.
 
-`;
+Powered by ZeroFalse`;
 
-    for (const result of results) {
-      if (!result.findings || result.findings.length === 0) continue;
-
-      comment += `### 📄 \`${result.filename}\`\n\n`;
-
-      for (const f of result.findings) {
-        const severityEmoji = {
-          'critical': '🔴',
-          'high': '🟠',
-          'medium': '🟡',
-          'low': '🔵'
-        }[f.severity] || '⚪';
-
-        comment += `${severityEmoji} **${f.severity?.toUpperCase() || 'UNKNOWN'}**: ${f.type || 'Unknown'}\n`;
-        comment += `- Line ${f.line || '?'}: ${f.description || 'No description'}\n\n`;
-      }
-    }
-
-    comment += `---
-*Powered by [ZeroFalse](https://zerofalse.vercel.app)*`;
-
-    return comment;
   }
 
 }
 
-module.exports = new WebhookController();
+module.exports =
+  new WebhookController();
