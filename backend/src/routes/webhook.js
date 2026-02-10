@@ -1,44 +1,21 @@
 const express = require('express');
 const router = express.Router();
-
 const WebhookController = require('../controllers/webhookController');
-
-// ======================================================
-// GITHUB WEBHOOK ROUTE
-// ======================================================
 
 router.post('/github', async (req, res) => {
   try {
-    // Standard console log for Railway visibility
     console.log("📩 GitHub webhook received");
 
-    // CRITICAL: We use .call() or .bind() or just call the instance 
-    // to ensure 'this' inside the controller refers to the WebhookController.
+    // We use .handleGitHubWebhook(req, res) directly on the instance
+    // since it was exported as 'new WebhookController()'
     await WebhookController.handleGitHubWebhook(req, res);
 
   } catch (error) {
     console.error("❌ Webhook route fatal error:", error.message);
-    
     if (!res.headersSent) {
-      res.status(500).json({
-        success: false,
-        error: "Webhook processing failed"
-      });
+      res.status(500).json({ success: false, error: "Internal Error" });
     }
   }
-});
-
-
-// ======================================================
-// TEST ROUTE
-// ======================================================
-
-router.get('/test', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "Webhook route working",
-    timestamp: new Date().toISOString()
-  });
 });
 
 module.exports = router;
