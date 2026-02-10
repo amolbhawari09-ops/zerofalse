@@ -1,410 +1,416 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZeroFalse — Security for AI-Generated Code</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-<title>ZeroFalse — Security for AI-Generated Code</title>
+    <style>
+        :root {
+            /* Enterprise Dark Theme Palette */
+            --bg: #000000;
+            --surface: #0A0A0A;
+            --surface-hover: #111111;
+            --border: #333333;
+            --border-subtle: #222222;
+            
+            --text-main: #EDEDED;
+            --text-muted: #888888;
+            --text-faint: #444444;
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+            --primary: #FFFFFF; /* High contrast action */
+            --primary-inv: #000000;
+            
+            --success: #2E9B48; /* Subdued green */
+            --warning: #F5A623;
+            --error: #E54D2E;
+            
+            --radius: 6px;
+            --font-ui: 'Inter', -apple-system, sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+        }
 
-<style>
+        * { box-sizing: border-box; }
 
-:root{
---primary:#7c3aed;
---primary-dark:#5b21b6;
---accent:#ec4899;
---bg:#0a0a0f;
---card:#1a1a24;
---border:#27272a;
---text:#ffffff;
---text-secondary:#a1a1aa;
---success:#10b981;
---danger:#ef4444;
-}
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: var(--font-ui);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
 
-body{
-margin:0;
-font-family:Inter;
-background:var(--bg);
-color:var(--text);
-}
+        /* --- Navbar --- */
+        nav {
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+        }
 
-.container{
-max-width:1100px;
-margin:auto;
-padding:40px 20px;
-}
+        .logo {
+            font-weight: 600;
+            font-size: 18px;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-main);
+        }
 
-button{
-cursor:pointer;
-border:none;
-}
+        .logo span { color: var(--text-muted); font-weight: 400; }
 
-nav{
-background:rgba(10,10,15,.7);
-border-bottom:1px solid var(--border);
-position:fixed;
-width:100%;
-top:0;
-}
+        .nav-actions button {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
 
-.nav-inner{
-display:flex;
-justify-content:space-between;
-align-items:center;
-padding:18px 20px;
-}
+        .nav-actions button:hover {
+            border-color: var(--text-muted);
+            background: var(--surface-hover);
+        }
 
-.logo{
-font-weight:800;
-font-size:20px;
-}
+        /* --- Layout --- */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 24px;
+            width: 100%;
+        }
 
-.hero{
-padding-top:140px;
-text-align:center;
-}
+        /* --- Hero Section --- */
+        .hero {
+            text-align: center;
+            margin-bottom: 60px;
+        }
 
-.hero h1{
-font-size:48px;
-margin-bottom:10px;
-}
+        h1 {
+            font-size: 48px;
+            letter-spacing: -0.04em;
+            font-weight: 600;
+            margin: 0 0 16px 0;
+            background: linear-gradient(to bottom, #fff, #888);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
 
-.hero p{
-color:var(--text-secondary);
-}
+        .hero p {
+            color: var(--text-muted);
+            font-size: 18px;
+            max-width: 500px;
+            margin: 0 auto 32px auto;
+            line-height: 1.5;
+        }
 
-.stats{
-display:flex;
-gap:20px;
-justify-content:center;
-margin-top:30px;
-}
+        /* --- Stats Grid (Stripe Style) --- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            background: var(--border-subtle); /* Creates the grid lines */
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius);
+            max-width: 600px;
+            margin: 0 auto;
+            overflow: hidden;
+        }
 
-.stat{
-background:var(--card);
-padding:20px;
-border-radius:12px;
-text-align:center;
-}
+        .stat-item {
+            background: var(--bg);
+            padding: 16px;
+            text-align: center;
+        }
 
-.stat-number{
-font-size:28px;
-font-weight:700;
-}
+        .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+            font-family: var(--font-code);
+            margin-bottom: 4px;
+            color: var(--text-main);
+        }
 
-.scanner{
-margin-top:60px;
-background:var(--card);
-padding:25px;
-border-radius:14px;
-}
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
 
-textarea{
-width:100%;
-height:200px;
-background:#0d0d12;
-color:white;
-border:1px solid var(--border);
-border-radius:8px;
-padding:10px;
-}
+        /* --- Editor Window (The "Product") --- */
+        .editor-container {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 500px;
+        }
 
-.scan-btn{
-background:linear-gradient(135deg,var(--primary),var(--primary-dark));
-color:white;
-padding:12px 25px;
-border-radius:8px;
-margin-top:15px;
-}
+        .editor-header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-.results{
-margin-top:20px;
-background:#111;
-padding:20px;
-border-radius:10px;
-}
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+        .control { width: 10px; height: 10px; border-radius: 50%; background: var(--border); }
 
-.vuln{
-border:1px solid var(--danger);
-padding:10px;
-margin-bottom:10px;
-border-radius:6px;
-}
+        .language-select select {
+            background: var(--bg);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: var(--font-ui);
+            cursor: pointer;
+            outline: none;
+        }
 
-.ok{
-color:var(--success);
-}
+        .editor-body {
+            display: flex;
+            flex: 1;
+            position: relative;
+            background: #000; /* Deep black for code */
+        }
 
-.error{
-color:var(--danger);
-}
+        /* Line Numbers */
+        .gutter {
+            width: 48px;
+            background: var(--surface);
+            border-right: 1px solid var(--border-subtle);
+            color: var(--text-faint);
+            font-family: var(--font-code);
+            font-size: 13px;
+            line-height: 24px; /* Must match textarea line-height */
+            text-align: right;
+            padding: 16px 12px 16px 0;
+            user-select: none;
+            overflow: hidden;
+        }
 
-</style>
+        /* Textarea overlay */
+        .code-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-family: var(--font-code);
+            font-size: 13px;
+            line-height: 24px;
+            padding: 16px;
+            resize: none;
+            outline: none;
+            white-space: pre;
+            overflow: auto;
+        }
+
+        /* --- Footer Actions --- */
+        .editor-footer {
+            border-top: 1px solid var(--border);
+            padding: 16px;
+            background: var(--surface);
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        .btn-scan {
+            background: var(--primary);
+            color: var(--primary-inv);
+            border: none;
+            padding: 10px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn-scan:hover { opacity: 0.9; }
+        .btn-scan:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* --- Results Area --- */
+        #scanResult {
+            border-top: 1px solid var(--border);
+            background: var(--surface);
+            display: none; /* Hidden by default until scan runs */
+        }
+
+        .result-header {
+            padding: 12px 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-subtle);
+            background: var(--surface-hover);
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        .vulnerability-card {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            transition: background 0.2s;
+        }
+        
+        .vulnerability-card:last-child { border-bottom: none; }
+        .vulnerability-card:hover { background: var(--surface-hover); }
+
+        .vuln-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+            color: var(--text-main);
+        }
+
+        .severity-badge {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .severity-high { background: var(--error); box-shadow: 0 0 8px rgba(229,77,46,0.4); }
+        .severity-medium { background: var(--warning); }
+        .severity-low { background: var(--success); }
+
+        .vuln-desc {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .vuln-fix {
+            background: #000;
+            border: 1px solid var(--border-subtle);
+            padding: 12px;
+            border-radius: 4px;
+            font-family: var(--font-code);
+            font-size: 12px;
+            color: var(--success);
+            display: block;
+            margin-top: 8px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+
+        .meta {
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--text-faint);
+            font-family: var(--font-code);
+        }
+
+        /* Empty/Loading States */
+        .state-empty {
+            padding: 40px;
+            text-align: center;
+            color: var(--text-faint);
+            font-size: 14px;
+        }
+        
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
-
 <body>
 
-
 <nav>
-<div class="nav-inner container">
-<div class="logo">ZeroFalse</div>
-<button class="scan-btn">Install App</button>
-</div>
+    <div class="logo">
+        ZeroFalse <span>/ Security</span>
+    </div>
+    <div class="nav-actions">
+        <button onclick="window.open('https://github.com/apps/zerofalse', '_blank')">Install GitHub App</button>
+    </div>
 </nav>
 
+<div class="container">
+    
+    <div class="hero">
+        <h1>Secure your AI-generated code.</h1>
+        <p>Instant static analysis and vulnerability detection for the modern stack.</p>
+        
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-value" id="heroTotalScans">-</div>
+                <div class="stat-label">Scans Run</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="heroVulnsFound">-</div>
+                <div class="stat-label">Risks Found</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">99.9%</div>
+                <div class="stat-label">Uptime</div>
+            </div>
+        </div>
+    </div>
 
-<div class="container hero">
+    <div class="editor-container">
+        
+        <div class="editor-header">
+            <div class="window-controls">
+                <div class="control"></div><div class="control"></div><div class="control"></div>
+            </div>
+            <div class="language-select">
+                <select id="languageSelect">
+                    <option value="javascript">JavaScript</option>
+                    <option value="typescript">TypeScript</option>
+                    <option value="python">Python</option>
+                    <option value="java">Java</option>
+                    <option value="go">Go</option>
+                </select>
+            </div>
+        </div>
 
-<h1>Security for AI-Generated Code</h1>
+        <div class="editor-body">
+            <div class="gutter" id="lineNumbers">1</div>
+            <textarea id="codeInput" class="code-input" spellcheck="false" placeholder="// Paste your AI-generated code here for security review..."></textarea>
+        </div>
 
-<p>Detect vulnerabilities instantly using AI security analysis.</p>
+        <div id="scanResult">
+            </div>
 
+        <div class="editor-footer">
+            <button id="scanBtn" class="btn-scan" onclick="performScan()">Analyze Code</button>
+        </div>
 
-<div class="stats">
-
-<div class="stat">
-<div class="stat-number" id="stat-scans">0</div>
-<div>Total scans</div>
-</div>
-
-<div class="stat">
-<div class="stat-number" id="stat-vulns">0</div>
-<div>Vulnerabilities</div>
-</div>
-
-<div class="stat">
-<div class="stat-number" id="stat-accuracy">0%</div>
-<div>Accuracy</div>
-</div>
-
-</div>
-
-</div>
-
-
-
-<div class="container scanner">
-
-<select id="language">
-<option value="javascript">JavaScript</option>
-<option value="python">Python</option>
-<option value="typescript">TypeScript</option>
-<option value="java">Java</option>
-<option value="go">Go</option>
-</select>
-
-
-<textarea id="code"></textarea>
-
-
-<button class="scan-btn" onclick="runScan()" id="scanBtn">
-Scan Code
-</button>
-
-
-<div class="results" id="results">
-Ready.
-</div>
-
+    </div>
 
 </div>
 
-
-<script>
-
-
-/* ===============================
-API CONFIG
-=============================== */
-
-const API_BASE =
-location.hostname === "localhost"
-? "http://localhost:3000/api"
-: "https://zerofalse-production.up.railway.app/api";
-
-
-
-/* ===============================
-EXTENSION MAP
-=============================== */
-
-function getExtension(lang){
-
-const map={
-javascript:"js",
-python:"py",
-typescript:"ts",
-java:"java",
-go:"go"
-};
-
-return map[lang]||"txt";
-
-}
-
-
-
-/* ===============================
-LOAD STATS
-=============================== */
-
-async function loadStats(){
-
-try{
-
-const res=await fetch(API_BASE+"/scan");
-
-if(!res.ok)return;
-
-const data=await res.json();
-
-if(!data.stats)return;
-
-document.getElementById("stat-scans").innerText=data.stats.totalScans||0;
-
-document.getElementById("stat-vulns").innerText=data.stats.totalFindings||0;
-
-document.getElementById("stat-accuracy").innerText="100%";
-
-}
-catch{}
-
-}
-
-
-
-/* ===============================
-RUN SCAN
-=============================== */
-
-async function runScan(){
-
-const btn=document.getElementById("scanBtn");
-
-const code=document.getElementById("code").value;
-
-const language=document.getElementById("language").value;
-
-const results=document.getElementById("results");
-
-
-if(!code.trim()){
-results.innerHTML="<div class='error'>Enter code first</div>";
-return;
-}
-
-
-btn.disabled=true;
-btn.innerText="Scanning...";
-
-
-try{
-
-const res=await fetch(API_BASE+"/scan",{
-
-method:"POST",
-
-headers:{
-"Content-Type":"application/json"
-},
-
-body:JSON.stringify({
-
-code:code,
-
-language:language,
-
-filename:"input."+getExtension(language),
-
-repo:"frontend",
-
-prNumber:null
-
-})
-
-});
-
-
-if(!res.ok)
-throw new Error("Scan failed");
-
-
-const data=await res.json();
-
-displayResults(data.scan||data);
-
-loadStats();
-
-}
-catch(err){
-
-results.innerHTML="<div class='error'>Backend connection failed</div>";
-
-}
-
-
-btn.disabled=false;
-btn.innerText="Scan Code";
-
-}
-
-
-
-/* ===============================
-DISPLAY RESULTS
-=============================== */
-
-function displayResults(scan){
-
-const results=document.getElementById("results");
-
-
-if(!scan.findings || scan.findings.length===0){
-
-results.innerHTML="<div class='ok'>No vulnerabilities found</div>";
-
-return;
-
-}
-
-
-let html="";
-
-
-scan.findings.forEach(f=>{
-
-html+=`
-<div class="vuln">
-
-<div><b>${f.type||"Vulnerability"}</b></div>
-
-<div>Line: ${f.line||"-"}</div>
-
-<div>${f.description||f.message||""}</div>
-
-</div>
-`;
-
-});
-
-
-results.innerHTML=html;
-
-}
-
-
-
-/* ===============================
-INIT
-=============================== */
-
-loadStats();
-
-
-</script>
-
-
+<script src="js/App.js"></script>
 </body>
 </html>
