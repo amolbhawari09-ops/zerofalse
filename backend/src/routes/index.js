@@ -9,6 +9,5 @@ router.use('/scan', scanRoutes);
 router.use('/feedback', feedbackRoutes);
 
 /* CRITICAL */
-router.use('/', webhookRoutes);
-
+router.use('/webhook', webhookRoutes);
 module.exports = router;
