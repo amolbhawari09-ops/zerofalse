@@ -129,6 +129,49 @@ class GitHubService {
       throw error;
     }
   }
+// =====================================================
+// Get repositories for installation
+// =====================================================
+
+async getInstallationRepositories(installationId) {
+
+  try {
+
+    logger.info(`Fetching repositories for installation ${installationId}`);
+
+    const token = await this.getInstallationToken(installationId);
+
+    const response = await axios.get(
+      `${this.baseURL}/installation/repositories`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28'
+        },
+        timeout: 10000
+      }
+    );
+
+    const repos = response.data.repositories || [];
+
+    logger.info(`Found ${repos.length} repositories`);
+
+    return repos;
+
+  }
+  catch (error) {
+
+    logger.error("Failed to fetch installation repositories:", {
+      status: error.response?.status,
+      message: error.response?.data?.message || error.message
+    });
+
+    throw error;
+
+  }
+
+}
 
   // =====================================================
   // Get PR files
