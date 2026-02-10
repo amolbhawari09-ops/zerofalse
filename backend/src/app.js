@@ -65,22 +65,21 @@ app.use(cors({
 
 
 // =====================================================
-// CRITICAL FIX: DO NOT PARSE JSON FOR WEBHOOK ROUTES
+// FIXED: JSON PARSER WITH RAW BODY CAPTURE
 // =====================================================
 
-app.use((req, res, next) => {
+// This replaces your previous broken logic.
+// It parses JSON for everyone, but saves the raw string
+// specifically for the webhook route so signature verification works.
 
-  // Skip JSON parser for webhook
-  if (req.originalUrl.startsWith('/api/webhook')) {
-    return next();
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, res, buf) => {
+    if (req.originalUrl.startsWith('/api/webhook')) {
+      req.rawBody = buf.toString();
+    }
   }
-
-  // Use JSON parser for all other routes
-  express.json({
-    limit: '10mb'
-  })(req, res, next);
-
-});
+}));
 
 
 // =====================================================
