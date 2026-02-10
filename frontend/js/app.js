@@ -7,7 +7,7 @@ const API_URL =
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1"
         ? "http://localhost:3000/api"
-        : "https://zerofalse-production.up.railway.app/api";
+        : "https://zerofalse-production-1dca.up.railway.app/api";
 
 console.log("Environment:", API_URL);
 
