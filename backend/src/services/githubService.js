@@ -5,18 +5,18 @@ const jwt = require('jsonwebtoken');
 const baseURL = 'https://api.github.com';
 const tokenCache = new Map();
 
-// Helper: Fix private key newlines
-function getPrivateKey() {
-  let key = process.env.GITHUB_PRIVATE_KEY;
-  if (!key) throw new Error("Private key empty");
-  return key.replace(/\\n/g, '\n');
-}
-
-// Helper: JWT Generation
+// Internal Helper: Secure JWT Generation
 function generateJWT() {
   const now = Math.floor(Date.now() / 1000);
-  const payload = { iat: now - 60, exp: now + 600, iss: process.env.GITHUB_APP_ID };
-  return jwt.sign(payload, getPrivateKey(), { algorithm: 'RS256' });
+  const key = (process.env.GITHUB_PRIVATE_KEY || '').replace(/\\n/g, '\n');
+  
+  if (!key) throw new Error("GITHUB_PRIVATE_KEY is missing");
+
+  return jwt.sign(
+    { iat: now - 60, exp: now + 600, iss: process.env.GITHUB_APP_ID },
+    key,
+    { algorithm: 'RS256' }
+  );
 }
 
 module.exports = {
@@ -32,29 +32,32 @@ module.exports = {
       });
 
       const token = response.data.token;
-      tokenCache.set(installationId, { token, expiresAt: Date.now() + ((response.data.expires_in || 3600) - 300) * 1000 });
+      tokenCache.set(installationId, { 
+        token, 
+        expiresAt: Date.now() + ((response.data.expires_in || 3600) - 300) * 1000 
+      });
       return token;
     } catch (error) {
-      logger.error("Token acquisition failed:", error.message);
+      logger.error("GitHub Token Error: " + error.message);
       throw error;
     }
   },
 
   getPullRequestFiles: async (owner, repo, prNumber, token) => {
-    const response = await axios.get(`${baseURL}/repos/${owner}/${repo}/pulls/${prNumber}/files`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
+    const res = await axios.get(`${baseURL}/repos/${owner}/${repo}/pulls/${prNumber}/files`, {
+      headers: { Authorization: `Bearer ${token}` }
     });
-    return response.data;
+    return res.data;
   },
 
   getFileContent: async (owner, repo, path, ref, token) => {
     try {
-      const response = await axios.get(`${baseURL}/repos/${owner}/${repo}/contents/${path}`, {
+      const res = await axios.get(`${baseURL}/repos/${owner}/${repo}/contents/${path}`, {
         params: { ref },
-        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
+        headers: { Authorization: `Bearer ${token}` }
       });
-      return response.data.content ? Buffer.from(response.data.content, 'base64').toString('utf8') : null;
-    } catch (error) { return null; }
+      return res.data.content ? Buffer.from(res.data.content, 'base64').toString('utf8') : null;
+    } catch (e) { return null; }
   },
 
   createPRComment: async (owner, repo, prNumber, body, token) => {
