@@ -1,211 +1,87 @@
 const ScannerService = require('../services/scannerService');
 const logger = require('../utils/logger');
 
-class ScanController {
+// =====================================================
+// EXPORTED CONTROLLER (Functional Object)
+// =====================================================
 
-  // =====================================================
-  // MANUAL SCAN (Frontend "Scan for Vulnerabilities" button)
+module.exports = {
   // POST /api/scan
-  // =====================================================
-  async manualScan(req, res) {
-
+  manualScan: async (req, res) => {
     try {
+      const { code, filename, language, repo, prNumber } = req.body;
 
-      const {
-        code,
-        filename,
-        language,
-        repo,
-        prNumber
-      } = req.body;
-
-      // Validate input
       if (!code) {
-
-        return res.status(400).json({
-          success: false,
-          error: "Code is required"
-        });
-
+        return res.status(400).json({ success: false, error: "Code is required" });
       }
 
-      const safeFilename =
-        filename || "input.js";
+      logger.info(`🔍 Manual scan requested for: ${filename || "input.js"}`);
 
-      const safeLanguage =
-        language || "javascript";
-
-      const safeRepo =
-        repo || "manual";
-
-      const safePrNumber =
-        prNumber || null;
-
-      logger.info("Manual scan requested", {
-        filename: safeFilename,
-        language: safeLanguage
-      });
-
-      const scan =
-        await ScannerService.scanCode(
-          code,
-          safeFilename,
-          safeRepo,
-          safePrNumber,
-          safeLanguage
-        );
-
-      return res.status(200).json({
-        success: true,
-        scan
-      });
-
-    }
-    catch (error) {
-
-      logger.error(
-        "Manual scan failed",
-        error.message
+      // Call functional ScannerService
+      const scan = await ScannerService.scanCode(
+        code,
+        filename || "input.js",
+        repo || "manual",
+        prNumber || null,
+        language || "javascript"
       );
 
-      return res.status(500).json({
-        success: false,
-        error: error.message
-      });
-
+      return res.status(200).json({ success: true, scan });
+    } catch (error) {
+      logger.error("Manual scan failed:", error.message);
+      return res.status(500).json({ success: false, error: error.message });
     }
+  },
 
-  }
-
-  // =====================================================
-  // GET ALL SCANS
   // GET /api/scan
-  // =====================================================
-  async getScans(req, res) {
-
+  getScans: async (req, res) => {
     try {
-
-      const limit =
-        parseInt(req.query.limit) || 50;
-
-      const scans =
-        await ScannerService.getAllScans(limit);
-
-      const stats =
-        await ScannerService.getStats();
+      const limit = parseInt(req.query.limit) || 50;
+      
+      // These calls rely on the now-functional ScannerService
+      const scans = await ScannerService.getAllScans ? 
+                    await ScannerService.getAllScans(limit) : [];
+      
+      const stats = await ScannerService.getStats();
 
       return res.status(200).json({
-
         success: true,
         scans,
         stats,
         count: scans.length
-
       });
-
+    } catch (error) {
+      logger.error("Get scans failed:", error.message);
+      return res.status(500).json({ success: false, error: error.message });
     }
-    catch (error) {
+  },
 
-      logger.error(
-        "Get scans failed",
-        error.message
-      );
-
-      return res.status(500).json({
-        success: false,
-        error: error.message
-      });
-
-    }
-
-  }
-
-  // =====================================================
-  // GET SINGLE SCAN
   // GET /api/scan/:id
-  // =====================================================
-  async getScan(req, res) {
-
+  getScan: async (req, res) => {
     try {
-
       const { id } = req.params;
+      if (!id) return res.status(400).json({ success: false, error: "ID required" });
 
-      if (!id) {
+      const scan = await ScannerService.getScanById ? 
+                   await ScannerService.getScanById(id) : null;
 
-        return res.status(400).json({
-          success: false,
-          error: "Scan ID required"
-        });
+      if (!scan) return res.status(404).json({ success: false, error: "Scan not found" });
 
-      }
-
-      const scan =
-        await ScannerService.getScanById(id);
-
-      if (!scan) {
-
-        return res.status(404).json({
-          success: false,
-          error: "Scan not found"
-        });
-
-      }
-
-      return res.status(200).json({
-        success: true,
-        scan
-      });
-
+      return res.status(200).json({ success: true, scan });
+    } catch (error) {
+      logger.error("Get scan failed:", error.message);
+      return res.status(500).json({ success: false, error: error.message });
     }
-    catch (error) {
+  },
 
-      logger.error(
-        "Get scan failed",
-        error.message
-      );
-
-      return res.status(500).json({
-        success: false,
-        error: error.message
-      });
-
-    }
-
-  }
-
-  // =====================================================
-  // GET SCAN STATS
   // GET /api/scan/stats
-  // =====================================================
-  async getStats(req, res) {
-
+  getStats: async (req, res) => {
     try {
-
-      const stats =
-        await ScannerService.getStats();
-
-      return res.status(200).json({
-        success: true,
-        stats
-      });
-
+      const stats = await ScannerService.getStats();
+      return res.status(200).json({ success: true, stats });
+    } catch (error) {
+      logger.error("Get stats failed:", error.message);
+      return res.status(500).json({ success: false, error: error.message });
     }
-    catch (error) {
-
-      logger.error(
-        "Get stats failed",
-        error.message
-      );
-
-      return res.status(500).json({
-        success: false,
-        error: error.message
-      });
-
-    }
-
   }
-
-}
-
-module.exports = new ScanController();
+};
