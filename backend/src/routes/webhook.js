@@ -4,18 +4,21 @@ const WebhookController = require('../controllers/webhookController');
 
 router.post('/github', async (req, res) => {
   try {
-    console.log("📩 GitHub webhook received");
+    console.log("📩 GitHub webhook received - Entering Handler");
 
-    // FIX: Explicitly bind the 'this' context so the controller can 
-    // find 'this.verifySignature' and other internal methods.
+    // SENIOR FIX: Using .bind ensures 'this' inside the controller 
+    // correctly points to the WebhookController instance.
     const handler = WebhookController.handleGitHubWebhook.bind(WebhookController);
     
     await handler(req, res);
 
   } catch (error) {
-    console.error("❌ Webhook route fatal error:", error.message);
+    // This will now catch the error instead of crashing the server
+    console.error("❌ WEBHOOK CRITICAL FAILURE:", error.message);
+    console.error(error.stack);
+    
     if (!res.headersSent) {
-      res.status(500).json({ success: false, error: "Internal Error" });
+      res.status(500).json({ success: false, error: "Internal Server Error" });
     }
   }
 });
