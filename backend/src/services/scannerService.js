@@ -6,18 +6,13 @@ const { connectDatabase, memoryStore } = require('../config/database');
 const logger = require('../utils/logger');
 
 // =====================================================
-// STATE MANAGEMENT (Moved outside the class)
+// STATE MANAGEMENT
 // =====================================================
 let dbInstance = null;
-const githubToken = process.env.GITHUB_TOKEN || null;
 
-// Initialize memory store if missing
+// Initialize memory store if missing (fallback mechanism)
 if (!memoryStore.scans) memoryStore.scans = [];
 if (!memoryStore.patterns) memoryStore.patterns = [];
-
-if (!githubToken) {
-  logger.warn("⚠️ GITHUB_TOKEN not set — PR scanning limited");
-}
 
 // =====================================================
 // INTERNAL HELPERS
@@ -26,7 +21,6 @@ if (!githubToken) {
 async function getDbSafe() {
   try {
     if (!dbInstance) {
-      logger.info("📦 Connecting database...");
       dbInstance = await connectDatabase();
     }
     return dbInstance;
@@ -49,13 +43,6 @@ async function saveScan(scan) {
   }
 }
 
-function detectLanguage(filename) {
-  if (!filename) return "text";
-  const ext = filename.split('.').pop();
-  const map = { js: 'javascript', ts: 'typescript', py: 'python', java: 'java', cpp: 'cpp', go: 'go' };
-  return map[ext] || "text";
-}
-
 function mergeFindings(patternFindings, llmFindings) {
   const merged = [...llmFindings];
   const seenLines = new Set(llmFindings.map(f => f.line));
@@ -70,7 +57,7 @@ function mergeFindings(patternFindings, llmFindings) {
 // =====================================================
 
 module.exports = {
-  // THE MAIN SCAN ENGINE (The one called by your Webhook)
+  // THE MAIN SCAN ENGINE
   scanCode: async (code, filename = "input.js", repo = "manual", prNumber = null, language = "javascript") => {
     const scanId = generateId();
     const startTime = Date.now();
@@ -91,7 +78,7 @@ module.exports = {
         logger.warn("LLM analysis failed:", llmError.message);
       }
 
-      // 3. Merge results
+      // 3. Merge and Save
       const findings = mergeFindings(patternFindings, llmFindings);
 
       const scan = {
@@ -100,7 +87,6 @@ module.exports = {
         prNumber,
         filename,
         language,
-        code: code.substring(0, 2000),
         codeHash: hashData(code),
         findings,
         timestamp: new Date(),
@@ -115,6 +101,29 @@ module.exports = {
     } catch (error) {
       logger.error("Scan fatal error:", error.message);
       return { id: scanId, error: error.message, status: "failed" };
+    }
+  },
+
+  // FEEDBACK LOGIC (Moved from the old class-based Model)
+  recordFeedback: async (scanId, isReal, comment) => {
+    try {
+      const db = await getDbSafe();
+      const feedback = {
+        userFeedback: { isReal, comment, providedAt: new Date() },
+        accuracyScore: isReal ? 100 : 0
+      };
+
+      if (db) {
+        await db.collection("scans").updateOne({ id: scanId }, { $set: feedback });
+      } else {
+        const idx = memoryStore.scans.findIndex(s => s.id === scanId);
+        if (idx >= 0) memoryStore.scans[idx] = { ...memoryStore.scans[idx], ...feedback };
+      }
+      
+      return feedback;
+    } catch (error) {
+      logger.error("recordFeedback failed:", error.message);
+      throw error;
     }
   },
 
