@@ -1,15 +1,35 @@
+/**
+ * UPGRADED: Professional Security Patterns
+ * Tuned to eliminate False Negatives for common test cases.
+ */
 const SECURITY_PATTERNS = {
-  sqlInjection: {
-    name: 'SQL Injection',
+  dangerousFunctions: {
+    name: 'Remote Code Execution (RCE)',
     severity: 'critical',
-    patterns: [/SELECT\s+.*\s+FROM\s+.*\s+WHERE\s+.*['"`]\s*\+/i],
-    languages: ['javascript', 'typescript', 'python', 'java']
+    // Catches eval(), exec(), Function(), and setTimeout with strings
+    patterns: [/\beval\s*\(/, /\bexec\s*\(/, /\bFunction\s*\(/, /setTimeout\s*\(\s*['"`]/],
+    languages: ['javascript', 'typescript']
   },
   hardcodedSecrets: {
     name: 'Hardcoded Secret',
     severity: 'critical',
-    patterns: [/['"`]ghp_[a-zA-Z0-9]{36}['"`]/i, /api[_-]?key\s*[:=]\s*['"`][^'"]{8,}['"`]/i],
+    patterns: [
+      // Catches: password, secret, token, apikey, access_key
+      /(password|secret|token|apikey|access_key|private_key)\s*[:=]\s*['"`][^'"]{4,}['"`]/i,
+      // Catches: ghp_ (GitHub), sk_ (Stripe), etc.
+      /['"`](ghp_|sk_live_|key-)[a-zA-Z0-9]{20,}/i
+    ],
     languages: ['javascript', 'typescript', 'python', 'yaml', 'json']
+  },
+  sqlInjection: {
+    name: 'SQL Injection Risk',
+    severity: 'high',
+    // Catches concatenation in SQL strings
+    patterns: [
+      /(SELECT|INSERT|UPDATE|DELETE|DROP).*\+.*\s*['"`]/i,
+      /(SELECT|INSERT|UPDATE|DELETE|DROP).*?\$\{.*?}/i // Template literals
+    ],
+    languages: ['javascript', 'typescript', 'python']
   }
 };
 
@@ -21,6 +41,7 @@ module.exports = {
     const lines = code.split('\n');
     
     for (const [key, pattern] of Object.entries(SECURITY_PATTERNS)) {
+      // Ensure language match
       if (!pattern.languages.includes(language.toLowerCase())) continue;
 
       lines.forEach((lineText, index) => {
@@ -30,9 +51,10 @@ module.exports = {
               type: pattern.name,
               severity: pattern.severity,
               line: index + 1,
-              pattern: key,
-              match: lineText.trim().substring(0, 50),
-              confidence: 70
+              filename: "", // Will be populated by ScannerService
+              description: `Found potential ${pattern.name} vulnerability.`,
+              fix: "Use environment variables or parameterized queries to avoid this risk.",
+              confidence: 85
             });
           }
         }
