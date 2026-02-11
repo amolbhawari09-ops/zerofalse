@@ -5,30 +5,40 @@ const jwt = require('jsonwebtoken');
 const baseURL = 'https://api.github.com';
 const tokenCache = new Map();
 
-// Internal Helper: Secure JWT Generation
+// Internal Helper: Secure JWT Generation for GitHub App
 function generateJWT() {
   const now = Math.floor(Date.now() / 1000);
   const key = (process.env.GITHUB_PRIVATE_KEY || '').replace(/\\n/g, '\n');
   
-  if (!key) throw new Error("GITHUB_PRIVATE_KEY is missing");
+  if (!key) throw new Error("GITHUB_PRIVATE_KEY is missing from environment variables");
 
   return jwt.sign(
-    { iat: now - 60, exp: now + 600, iss: process.env.GITHUB_APP_ID },
+    { 
+      iat: now - 60, 
+      exp: now + 600, 
+      iss: process.env.GITHUB_APP_ID 
+    },
     key,
     { algorithm: 'RS256' }
   );
 }
 
 module.exports = {
+  /**
+   * Generates or retrieves a cached installation token for the GitHub App.
+   */
   getInstallationToken: async (installationId) => {
     try {
-      if (!installationId) throw new Error("installationId required");
+      if (!installationId) throw new Error("installationId is required");
       
       const cached = tokenCache.get(installationId);
       if (cached && Date.now() < cached.expiresAt) return cached.token;
 
       const response = await axios.post(`${baseURL}/app/installations/${installationId}/access_tokens`, {}, {
-        headers: { Authorization: `Bearer ${generateJWT()}`, Accept: 'application/vnd.github+json' }
+        headers: { 
+          Authorization: `Bearer ${generateJWT()}`, 
+          Accept: 'application/vnd.github+json' 
+        }
       });
 
       const token = response.data.token;
@@ -38,11 +48,14 @@ module.exports = {
       });
       return token;
     } catch (error) {
-      logger.error("GitHub Token Error: " + error.message);
+      logger.error("GitHub Token Error: " + (error.response?.data?.message || error.message));
       throw error;
     }
   },
 
+  /**
+   * Retrieves the list of files modified in a Pull Request.
+   */
   getPullRequestFiles: async (owner, repo, prNumber, token) => {
     const res = await axios.get(`${baseURL}/repos/${owner}/${repo}/pulls/${prNumber}/files`, {
       headers: { Authorization: `Bearer ${token}` }
@@ -50,6 +63,9 @@ module.exports = {
     return res.data;
   },
 
+  /**
+   * Retrieves the raw content of a specific file at a given reference.
+   */
   getFileContent: async (owner, repo, path, ref, token) => {
     try {
       const res = await axios.get(`${baseURL}/repos/${owner}/${repo}/contents/${path}`, {
@@ -57,23 +73,29 @@ module.exports = {
         headers: { Authorization: `Bearer ${token}` }
       });
       return res.data.content ? Buffer.from(res.data.content, 'base64').toString('utf8') : null;
-    } catch (e) { return null; }
+    } catch (e) { 
+      return null; 
+    }
   },
 
-  // =====================================================
-  // UPGRADED: PROFESSIONAL COMMENT FORMATTING
-  // =====================================================
+  /**
+   * UPGRADED: Creates a professional, formatted security report on the GitHub PR.
+   * Fixes: "findings.filter is not a function" by ensuring data is an array.
+   */
   createPRComment: async (owner, repo, prNumber, findings, token) => {
-    // 1. Calculate Summary Stats automatically
+    // 🛡️ SAFETY GUARD: Ensure findings is always an array to prevent crashes
+    const safeFindings = Array.isArray(findings) ? findings : [];
+
+    // 1. Calculate Summary Stats
     const stats = {
-      critical: findings.filter(f => f.severity?.toLowerCase() === 'critical').length,
-      high: findings.filter(f => f.severity?.toLowerCase() === 'high').length,
-      medium: findings.filter(f => f.severity?.toLowerCase() === 'medium').length,
-      low: findings.filter(f => f.severity?.toLowerCase() === 'low').length,
-      total: findings.length
+      critical: safeFindings.filter(f => f.severity?.toLowerCase() === 'critical').length,
+      high: safeFindings.filter(f => f.severity?.toLowerCase() === 'high').length,
+      medium: safeFindings.filter(f => f.severity?.toLowerCase() === 'medium').length,
+      low: safeFindings.filter(f => f.severity?.toLowerCase() === 'low').length,
+      total: safeFindings.length
     };
 
-    // 2. Build Report Header
+    // 2. Build Report Header & Summary
     let body = `## 🛡️ ZeroFalse Security Scan Results\n\n`;
     body += `**Scan Status:** COMPLETED\n\n`;
     body += `### Summary:\n`;
@@ -89,11 +111,11 @@ module.exports = {
       body += `✅ **No vulnerabilities detected.** Your code follows security best practices.`;
     } else {
       // 4. Handle Findings (Wrong Code)
-      findings.forEach((f) => {
+      safeFindings.forEach((f) => {
         const severity = (f.severity || 'HIGH').toUpperCase();
         
         body += `### ${severity}\n`;
-        body += `**${f.type}** \n`;
+        body += `**${f.type || 'Potential Security Risk'}** \n`;
         body += `**File:** ${f.filename || 'N/A'}  \n`;
         body += `**Line:** ${f.line || 'N/A'}  \n\n`;
         
@@ -111,13 +133,19 @@ module.exports = {
 
     body += `_ZeroFalse — AI Security for AI-Generated Code_`;
 
-    // 5. Post to GitHub
+    // 5. Post to GitHub API
     try {
-      return await axios.post(`${baseURL}/repos/${owner}/${repo}/issues/${prNumber}/comments`, { body }, {
-        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
-      });
+      return await axios.post(`${baseURL}/repos/${owner}/${repo}/issues/${prNumber}/comments`, 
+        { body }, 
+        {
+          headers: { 
+            Authorization: `Bearer ${token}`, 
+            Accept: 'application/vnd.github.v3+json' 
+          }
+        }
+      );
     } catch (err) {
-      logger.error("PR Comment post failed: " + err.message);
+      logger.error("PR Comment post failed: " + (err.response?.data?.message || err.message));
     }
   }
 };
