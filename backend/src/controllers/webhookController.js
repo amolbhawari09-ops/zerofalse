@@ -93,7 +93,14 @@ async function handlePullRequest(payload) {
       const content = await GitHubService.getFileContent(owner, repo, file.filename, ref, token);
       if (!content) continue;
 
-      const scanResult = await ScannerService.scanCode(content, file.filename, payload.repository.full_name, prNumber);
+      // Ensure the repo full name is passed correctly for the scanner
+      const scanResult = await ScannerService.scanCode(
+        content, 
+        file.filename, 
+        payload.repository.full_name, 
+        prNumber
+      );
+      
       results.push({ filename: file.filename, findings: scanResult?.findings || [] });
     }
 
@@ -115,7 +122,7 @@ module.exports = {
   handleGitHubWebhook: async (req, res) => {
     logger.info("📩 WEBHOOK RECEIVED");
     try {
-      // Step 1: Verify Signature
+      // Step 1: Verify Signature (No 'this' needed anymore)
       const valid = await verifySignature(req);
       if (!valid) {
         logger.warn("❌ Invalid signature");
