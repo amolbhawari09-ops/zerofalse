@@ -48,15 +48,34 @@ async function handlePullRequest(payload) {
   const scanTargets = files.filter(f => shouldScanFile(f.filename));
   logger.info(`Found ${scanTargets.length} files to analyze`);
 
+  // ✅ UPGRADE 1: Initialize a list to collect all findings
+  let allFindings = [];
+
   for (const file of scanTargets) {
     const content = await GitHubService.getFileContent(repository.owner.login, repository.name, file.filename, pull_request.head.sha, token);
+    
     if (content) {
-      await ScannerService.scanCode(content, file.filename, repository.full_name, pull_request.number);
+      // ✅ UPGRADE 2: Capture the return value from the scanner
+      const scanResult = await ScannerService.scanCode(content, file.filename, repository.full_name, pull_request.number);
+      
+      // ✅ UPGRADE 3: Add the findings from this file to our master list
+      if (scanResult && Array.isArray(scanResult.findings)) {
+        allFindings = allFindings.concat(scanResult.findings);
+      }
     }
   }
   
-  await GitHubService.createPRComment(repository.owner.login, repository.name, pull_request.number, "## 🛡️ ZeroFalse Scan Complete", token);
-  logger.info("✅ Comment posted to GitHub");
+  // ✅ UPGRADE 4: Pass the master list to the comment service
+  // Your githubService.js will now correctly count and format these issues
+  await GitHubService.createPRComment(
+    repository.owner.login, 
+    repository.name, 
+    pull_request.number, 
+    allFindings, 
+    token
+  );
+
+  logger.info(`✅ Report posted to GitHub with ${allFindings.length} total findings`);
 }
 
 // EXPORT
@@ -64,21 +83,18 @@ module.exports = {
   handleGitHubWebhook: async (req, res) => {
     logger.info("📩 WEBHOOK RECEIVED");
     try {
-      // 1. Signature Step
       const isValid = await verifySignature(req);
       if (!isValid) return res.status(200).send("Ignored");
       
-      // 2. Event Step
       const payload = JSON.parse(req.rawBody.toString());
       if (req.headers['x-github-event'] === "pull_request") {
         await handlePullRequest(payload);
-        // 3. Completion Step
-        logger.info("✅ Scan finished");
+        logger.info("✅ Full webhook process finished");
       }
       
       return res.status(200).send("OK");
     } catch (err) {
-      logger.error("💥 FATAL ERROR:", err.message);
+      logger.error("💥 FATAL WEBHOOK ERROR:", err.message);
       return res.status(200).send("Error");
     }
   }
