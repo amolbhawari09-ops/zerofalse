@@ -10,9 +10,7 @@ const logger = require('../utils/logger');
 // =====================================================
 let dbInstance = null;
 
-// Initialize memory store if missing (fallback mechanism)
 if (!memoryStore.scans) memoryStore.scans = [];
-if (!memoryStore.patterns) memoryStore.patterns = [];
 
 // =====================================================
 // INTERNAL HELPERS
@@ -43,11 +41,22 @@ async function saveScan(scan) {
   }
 }
 
+/**
+ * Ensures findings from different sources don't overlap 
+ * and maintains a clean array structure.
+ */
 function mergeFindings(patternFindings, llmFindings) {
-  const merged = [...llmFindings];
-  const seenLines = new Set(llmFindings.map(f => f.line));
-  for (const pf of patternFindings) {
-    if (!seenLines.has(pf.line)) merged.push(pf);
+  // ✅ FIX: Ensure both are arrays before spreading
+  const safeLLM = Array.isArray(llmFindings) ? llmFindings : [];
+  const safePattern = Array.isArray(patternFindings) ? patternFindings : [];
+
+  const merged = [...safeLLM];
+  const seenLines = new Set(safeLLM.map(f => f.line));
+  
+  for (const pf of safePattern) {
+    if (!seenLines.has(pf.line)) {
+      merged.push(pf);
+    }
   }
   return merged;
 }
@@ -57,28 +66,37 @@ function mergeFindings(patternFindings, llmFindings) {
 // =====================================================
 
 module.exports = {
-  // THE MAIN SCAN ENGINE
   scanCode: async (code, filename = "input.js", repo = "manual", prNumber = null, language = "javascript") => {
     const scanId = generateId();
     const startTime = Date.now();
     logger.info(`🔍 Scan started: ${filename}`);
 
     try {
-      if (!code) throw new Error("Empty code");
+      if (!code) throw new Error("Empty code provided for analysis");
 
-      // 1. Run Pattern Scan
+      // 1. Run Pattern Scan (The Safety Net)
       const patternFindings = quickPatternScan(code, language) || [];
 
-      // 2. Run LLM Scan
+      // 2. Run LLM Scan (The Brain)
       let llmFindings = [];
       try {
         const llmResult = await LLMService.analyzeCode(code, filename, language);
-        llmFindings = llmResult?.findings || [];
+        
+        // ✅ CRITICAL FIX: The Data Normalizer
+        // This prevents the "filter is not a function" error and False Negatives
+        if (llmResult && Array.isArray(llmResult.findings)) {
+          llmFindings = llmResult.findings;
+          logger.info(`🤖 AI detected ${llmFindings.length} issues in ${filename}`);
+        } else if (llmResult && llmResult.findings) {
+          // If the AI returned a single object instead of an array, wrap it
+          llmFindings = [llmResult.findings];
+          logger.warn(`⚠️ AI returned single finding object, normalized to array.`);
+        }
       } catch (llmError) {
-        logger.warn("LLM analysis failed:", llmError.message);
+        logger.error(`❌ LLM Service Failure: ${llmError.message}`);
       }
 
-      // 3. Merge and Save
+      // 3. Merge results and verify integrity
       const findings = mergeFindings(patternFindings, llmFindings);
 
       const scan = {
@@ -88,42 +106,27 @@ module.exports = {
         filename,
         language,
         codeHash: hashData(code),
-        findings,
+        findings, // This is the clean array the GitHub bot needs
         timestamp: new Date(),
         scanDuration: Date.now() - startTime,
         status: "completed"
       };
 
+      // 4. Persistence
       await saveScan(scan);
-      logger.info(`✅ Scan finished for ${filename}: ${findings.length} findings`);
+      
+      logger.info(`✅ Scan finished for ${filename}: ${findings.length} total findings`);
       return scan;
 
     } catch (error) {
-      logger.error("Scan fatal error:", error.message);
-      return { id: scanId, error: error.message, status: "failed" };
-    }
-  },
-
-  // FEEDBACK LOGIC (Moved from the old class-based Model)
-  recordFeedback: async (scanId, isReal, comment) => {
-    try {
-      const db = await getDbSafe();
-      const feedback = {
-        userFeedback: { isReal, comment, providedAt: new Date() },
-        accuracyScore: isReal ? 100 : 0
+      logger.error(`🚨 Scan fatal error: ${error.message}`);
+      return { 
+        id: scanId, 
+        findings: [], 
+        error: error.message, 
+        status: "failed",
+        timestamp: new Date()
       };
-
-      if (db) {
-        await db.collection("scans").updateOne({ id: scanId }, { $set: feedback });
-      } else {
-        const idx = memoryStore.scans.findIndex(s => s.id === scanId);
-        if (idx >= 0) memoryStore.scans[idx] = { ...memoryStore.scans[idx], ...feedback };
-      }
-      
-      return feedback;
-    } catch (error) {
-      logger.error("recordFeedback failed:", error.message);
-      throw error;
     }
   },
 
