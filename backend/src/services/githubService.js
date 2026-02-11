@@ -60,9 +60,64 @@ module.exports = {
     } catch (e) { return null; }
   },
 
-  createPRComment: async (owner, repo, prNumber, body, token) => {
-    return await axios.post(`${baseURL}/repos/${owner}/${repo}/issues/${prNumber}/comments`, { body }, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
-    });
+  // =====================================================
+  // UPGRADED: PROFESSIONAL COMMENT FORMATTING
+  // =====================================================
+  createPRComment: async (owner, repo, prNumber, findings, token) => {
+    // 1. Calculate Summary Stats automatically
+    const stats = {
+      critical: findings.filter(f => f.severity?.toLowerCase() === 'critical').length,
+      high: findings.filter(f => f.severity?.toLowerCase() === 'high').length,
+      medium: findings.filter(f => f.severity?.toLowerCase() === 'medium').length,
+      low: findings.filter(f => f.severity?.toLowerCase() === 'low').length,
+      total: findings.length
+    };
+
+    // 2. Build Report Header
+    let body = `## 🛡️ ZeroFalse Security Scan Results\n\n`;
+    body += `**Scan Status:** COMPLETED\n\n`;
+    body += `### Summary:\n`;
+    body += `- **Total Issues:** ${stats.total}\n`;
+    body += `- **Critical:** ${stats.critical}\n`;
+    body += `- **High:** ${stats.high}\n`;
+    body += `- **Medium:** ${stats.medium}\n`;
+    body += `- **Low:** ${stats.low}\n\n`;
+    body += `--- \n\n`;
+
+    // 3. Handle Empty Results (Correct Code)
+    if (stats.total === 0) {
+      body += `✅ **No vulnerabilities detected.** Your code follows security best practices.`;
+    } else {
+      // 4. Handle Findings (Wrong Code)
+      findings.forEach((f) => {
+        const severity = (f.severity || 'HIGH').toUpperCase();
+        
+        body += `### ${severity}\n`;
+        body += `**${f.type}** \n`;
+        body += `**File:** ${f.filename || 'N/A'}  \n`;
+        body += `**Line:** ${f.line || 'N/A'}  \n\n`;
+        
+        if (f.description) {
+          body += `**Description:** ${f.description}\n\n`;
+        }
+
+        if (f.fix) {
+          body += `**Fix:**\n`;
+          body += `\`\`\`javascript\n${f.fix}\n\`\`\`\n`;
+        }
+        body += `--- \n\n`;
+      });
+    }
+
+    body += `_ZeroFalse — AI Security for AI-Generated Code_`;
+
+    // 5. Post to GitHub
+    try {
+      return await axios.post(`${baseURL}/repos/${owner}/${repo}/issues/${prNumber}/comments`, { body }, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
+      });
+    } catch (err) {
+      logger.error("PR Comment post failed: " + err.message);
+    }
   }
 };
