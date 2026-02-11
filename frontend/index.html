@@ -11,24 +11,19 @@
 
     <style>
         :root {
-            /* Enterprise Dark Theme Palette */
             --bg: #000000;
             --surface: #0A0A0A;
             --surface-hover: #111111;
             --border: #333333;
             --border-subtle: #222222;
-            
             --text-main: #EDEDED;
             --text-muted: #888888;
             --text-faint: #444444;
-
-            --primary: #FFFFFF; /* High contrast action */
+            --primary: #FFFFFF;
             --primary-inv: #000000;
-            
             --success: #2E9B48;
             --warning: #F5A623;
             --error: #E54D2E;
-            
             --radius: 8px;
             --font-ui: 'Inter', -apple-system, sans-serif;
             --font-code: 'JetBrains Mono', monospace;
@@ -49,7 +44,6 @@
             scroll-behavior: smooth;
         }
 
-        /* --- Navbar --- */
         nav {
             border-bottom: 1px solid var(--border-subtle);
             padding: 0 24px;
@@ -64,29 +58,9 @@
             z-index: 100;
         }
 
-        .logo {
-            font-weight: 700;
-            font-size: 18px;
-            letter-spacing: -0.02em;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--text-main);
-            text-decoration: none;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 32px;
-        }
-
-        .nav-links a {
-            color: var(--text-muted);
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            transition: color 0.2s;
-        }
+        .logo { font-weight: 700; font-size: 18px; letter-spacing: -0.02em; display: flex; align-items: center; gap: 8px; color: var(--text-main); text-decoration: none; }
+        .nav-links { display: flex; gap: 32px; }
+        .nav-links a { color: var(--text-muted); text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.2s; }
         .nav-links a:hover { color: var(--text-main); }
 
         .btn-install {
@@ -102,21 +76,12 @@
         }
         .btn-install:hover { background: var(--surface-hover); border-color: var(--text-muted); }
 
-        /* --- Hero --- */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 24px;
-            width: 100%;
-        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; width: 100%; }
 
-        .hero {
-            text-align: center;
-            padding: 80px 0 60px;
-        }
-
+        /* --- HERO SECTION (YC UPGRADED) --- */
+        .hero { text-align: center; padding: 100px 0 60px; }
         h1 {
-            font-size: 56px;
+            font-size: 64px;
             letter-spacing: -0.04em;
             font-weight: 700;
             margin: 0 0 24px 0;
@@ -126,28 +91,16 @@
             line-height: 1.1;
         }
 
-        .hero p {
-            color: var(--text-muted);
-            font-size: 20px;
-            max-width: 600px;
-            margin: 0 auto 40px auto;
-            line-height: 1.6;
-        }
+        .hero p { color: var(--text-muted); font-size: 20px; max-width: 650px; margin: 0 auto 40px auto; line-height: 1.6; }
 
-        /* --- NEW HERO BUTTONS --- */
-        .hero-actions {
-            display: flex;
-            gap: 16px;
-            justify-content: center;
-            margin-bottom: 60px;
-        }
+        .hero-actions { display: flex; gap: 16px; justify-content: center; margin-bottom: 24px; }
 
         .btn-hero {
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            padding: 14px 28px;
-            border-radius: 30px; /* Pill shape for CTA */
+            padding: 16px 32px;
+            border-radius: 30px;
             font-size: 15px;
             font-weight: 600;
             cursor: pointer;
@@ -155,29 +108,18 @@
             text-decoration: none;
         }
 
-        /* Primary CTA (White) */
-        .btn-hero.primary {
-            background: var(--primary);
-            color: var(--primary-inv);
-            border: 1px solid var(--primary);
-        }
-        .btn-hero.primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
-        }
+        /* PRIMARY: Install on GitHub (White) */
+        .btn-hero.primary { background: var(--primary); color: var(--primary-inv); border: 1px solid var(--primary); }
+        .btn-hero.primary:hover { transform: translateY(-2px); box-shadow: 0 0 30px rgba(255, 255, 255, 0.2); }
 
-        /* Secondary CTA (Glass) */
-        .btn-hero.secondary {
-            background: rgba(255,255,255,0.05);
-            color: var(--text-main);
-            border: 1px solid var(--border);
-        }
-        .btn-hero.secondary:hover {
-            background: rgba(255,255,255,0.1);
-            border-color: var(--text-muted);
-        }
+        /* SECONDARY: Playground (Glass) */
+        .btn-hero.secondary { background: rgba(255,255,255,0.05); color: var(--text-main); border: 1px solid var(--border); }
+        .btn-hero.secondary:hover { background: rgba(255,255,255,0.1); border-color: var(--text-muted); }
 
-        /* --- Stats (Stripe Style) --- */
+        .trust-line { color: var(--text-muted); font-size: 14px; margin-bottom: 80px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .status-dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; }
+
+        /* --- VALUE LABELS --- */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -185,234 +127,63 @@
             background: var(--border-subtle);
             border: 1px solid var(--border-subtle);
             border-radius: var(--radius);
-            max-width: 600px;
-            margin: 0 auto 80px;
+            max-width: 700px;
+            margin: 0 auto 100px;
         }
 
-        .stat-item {
-            background: var(--bg);
-            padding: 20px;
-            text-align: center;
-        }
-        .stat-value { font-size: 24px; font-weight: 700; font-family: var(--font-code); margin-bottom: 4px; }
+        .stat-item { background: var(--bg); padding: 24px; text-align: center; }
+        .stat-value { font-size: 18px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; }
         .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
 
-        /* --- Editor (The Product) --- */
-        .editor-wrapper {
-            margin-bottom: 120px;
-        }
-
+        /* --- SCANNER --- */
+        .editor-wrapper { margin-bottom: 120px; }
         .editor-container {
             border: 1px solid var(--border);
             border-radius: 12px;
             background: var(--surface);
-            box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 20px 60px -10px rgba(0,0,0,0.6);
+            box-shadow: 0 20px 60px -10px rgba(0,0,0,0.6);
             overflow: hidden;
             display: flex;
             flex-direction: column;
             min-height: 500px;
         }
 
-        .editor-header {
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-            padding: 12px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
+        .editor-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
         .window-controls { display: flex; gap: 8px; }
         .control { width: 10px; height: 10px; border-radius: 50%; background: var(--border); }
 
-        .language-select select {
-            background: var(--bg);
-            color: var(--text-main);
-            border: 1px solid var(--border);
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 13px;
-            font-family: var(--font-ui);
-            cursor: pointer;
-            outline: none;
-        }
+        .language-select select { background: var(--bg); color: var(--text-main); border: 1px solid var(--border); padding: 6px 12px; border-radius: 4px; font-size: 13px; outline: none; }
 
-        .editor-body {
-            display: flex;
-            flex: 1;
-            position: relative;
-            background: #050505; 
-        }
+        .editor-body { display: flex; flex: 1; position: relative; background: #050505; }
+        .gutter { width: 48px; background: var(--surface); border-right: 1px solid var(--border-subtle); color: var(--text-faint); font-family: var(--font-code); font-size: 13px; line-height: 24px; text-align: right; padding: 16px 12px; user-select: none; }
+        .code-input { flex: 1; background: transparent; border: none; color: var(--text-main); font-family: var(--font-code); font-size: 13px; line-height: 24px; padding: 16px; resize: none; outline: none; white-space: pre; }
 
-        .gutter {
-            width: 48px;
-            background: var(--surface);
-            border-right: 1px solid var(--border-subtle);
-            color: var(--text-faint);
-            font-family: var(--font-code);
-            font-size: 13px;
-            line-height: 24px;
-            text-align: right;
-            padding: 16px 12px 16px 0;
-            user-select: none;
-        }
+        .editor-footer { border-top: 1px solid var(--border); padding: 16px; background: var(--surface); display: flex; justify-content: space-between; align-items: center; }
+        .btn-scan { background: var(--primary); color: var(--primary-inv); border: none; padding: 10px 24px; font-size: 14px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+        .btn-scan:disabled { opacity: 0.5; }
 
-        .code-input {
-            flex: 1;
-            background: transparent;
-            border: none;
-            color: var(--text-main);
-            font-family: var(--font-code);
-            font-size: 13px;
-            line-height: 24px;
-            padding: 16px;
-            resize: none;
-            outline: none;
-            white-space: pre;
-        }
-
-        .editor-footer {
-            border-top: 1px solid var(--border);
-            padding: 16px;
-            background: var(--surface);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .status { font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
-        .dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; display: inline-block; }
-
-        .btn-scan {
-            background: var(--primary);
-            color: var(--primary-inv);
-            border: none;
-            padding: 10px 24px;
-            font-size: 14px;
-            font-weight: 600;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: transform 0.1s;
-        }
-        .btn-scan:hover { opacity: 0.9; }
-        .btn-scan:active { transform: translateY(1px); }
-        .btn-scan:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        /* --- Results Area --- */
-        #scanResult {
-            border-top: 1px solid var(--border);
-            background: var(--surface);
-            display: none;
-        }
-        .result-header { padding: 12px 16px; font-size: 12px; color: var(--text-muted); border-bottom: 1px solid var(--border-subtle); background: var(--surface-hover); font-weight: 600; letter-spacing: 0.05em; }
+        #scanResult { border-top: 1px solid var(--border); background: var(--surface); display: none; }
+        .result-header { padding: 12px 16px; font-size: 12px; color: var(--text-muted); border-bottom: 1px solid var(--border-subtle); background: var(--surface-hover); font-weight: 600; }
         .vulnerability-card { padding: 16px; border-bottom: 1px solid var(--border-subtle); }
-        .vulnerability-card:last-child { border-bottom: none; }
-        .vuln-title { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; margin-bottom: 6px; color: var(--text-main); }
+        .vuln-title { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
         .vuln-desc { color: var(--text-muted); font-size: 13px; margin-bottom: 10px; line-height: 1.5; }
         .vuln-fix { background: #000; border: 1px solid var(--border-subtle); padding: 12px; border-radius: 6px; font-family: var(--font-code); font-size: 12px; color: var(--success); white-space: pre-wrap; display: block; }
+        
         .severity-high { background: var(--error); width: 8px; height: 8px; border-radius: 50%; }
-        .severity-medium { background: var(--warning); width: 8px; height: 8px; border-radius: 50%; }
-        .severity-low { background: var(--success); width: 8px; height: 8px; border-radius: 50%; }
         .state-empty { padding: 40px; text-align: center; color: var(--text-faint); font-size: 14px; }
 
-        /* --- Features Section --- */
-        .section-title { text-align: center; margin-bottom: 60px; }
-        .section-title h2 { font-size: 32px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.03em; }
-        .section-title p { color: var(--text-muted); font-size: 16px; }
-
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 24px;
-            margin-bottom: 120px;
-        }
-
-        .feature-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 32px;
-            transition: border-color 0.2s;
-        }
-        .feature-card:hover { border-color: var(--text-muted); }
-
-        .feature-icon { font-size: 24px; margin-bottom: 16px; display: block; }
-        .feature-card h3 { font-size: 18px; font-weight: 600; margin-bottom: 12px; }
+        /* --- FEATURES --- */
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 120px; }
+        .feature-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; }
+        .feature-card h3 { font-size: 18px; margin-bottom: 12px; }
         .feature-card p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
 
-        /* --- Pricing Section --- */
-        .pricing-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 24px;
-            margin-bottom: 120px;
-        }
+        /* --- FOOTER --- */
+        footer { border-top: 1px solid var(--border); padding: 80px 0 40px; background: var(--surface); }
+        .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; margin-bottom: 60px; }
+        .footer-bottom { border-top: 1px solid var(--border-subtle); padding-top: 32px; display: flex; justify-content: space-between; color: var(--text-faint); font-size: 13px; }
 
-        .pricing-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 32px;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .pricing-card.featured { border-color: var(--text-main); background: var(--surface-hover); }
-        
-        .plan-name { font-size: 14px; color: var(--text-muted); font-weight: 500; margin-bottom: 8px; }
-        .plan-price { font-size: 36px; font-weight: 700; margin-bottom: 24px; color: var(--text-main); }
-        .plan-features { list-style: none; padding: 0; margin: 0 0 32px 0; flex: 1; }
-        .plan-features li { display: flex; gap: 10px; font-size: 14px; color: var(--text-muted); margin-bottom: 12px; }
-        .plan-features li::before { content: "✓"; color: var(--text-main); }
-        
-        .btn-plan {
-            width: 100%;
-            padding: 12px;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--text-main);
-        }
-        .featured .btn-plan { background: var(--text-main); color: var(--bg); border: none; }
-
-        /* --- Footer --- */
-        footer {
-            border-top: 1px solid var(--border);
-            padding: 80px 0 40px;
-            background: var(--surface);
-        }
-        .footer-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr;
-            gap: 40px;
-            margin-bottom: 60px;
-        }
-        .footer-brand h4 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
-        .footer-brand p { color: var(--text-muted); font-size: 14px; line-height: 1.6; max-width: 300px; }
-        .footer-col h5 { font-size: 14px; font-weight: 600; margin-bottom: 20px; color: var(--text-main); }
-        .footer-col ul { list-style: none; padding: 0; }
-        .footer-col li { margin-bottom: 12px; }
-        .footer-col a { color: var(--text-muted); text-decoration: none; font-size: 14px; }
-        .footer-col a:hover { color: var(--text-main); }
-        
-        .footer-bottom {
-            border-top: 1px solid var(--border-subtle);
-            padding-top: 32px;
-            display: flex;
-            justify-content: space-between;
-            color: var(--text-faint);
-            font-size: 13px;
-        }
-
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            h1 { font-size: 36px; }
-            .hero-actions { flex-direction: column; padding: 0 40px; } /* Stack buttons on mobile */
-            .stats-grid, .pricing-grid, .footer-grid { grid-template-columns: 1fr; }
-            .nav-links { display: none; }
-        }
+        @media (max-width: 768px) { h1 { font-size: 40px; } .hero-actions { flex-direction: column; } .stats-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -422,41 +193,46 @@
     <div class="nav-links">
         <a href="#features">Features</a>
         <a href="#pricing">Pricing</a>
-        <a href="https://github.com/apps/zerofalse-security">Documentation</a>
+        <a href="https://github.com/apps/zerofalse-security" target="_blank">Docs</a>
     </div>
-    <button class="btn-install" onclick="window.open('https://github.com/apps/zerofalse-security/installations/new', '_blank')">Install GitHub App</button>
+    <button class="btn-install" onclick="window.open('https://github.com/apps/zerofalse-security/installations/new', '_blank')">Install App</button>
 </nav>
 
 <div class="container">
     
     <section class="hero">
         <h1>Secure your AI-generated code.</h1>
-        <p>Automatically scans pull requests and detects vulnerabilities in AI-generated code. </p>
+        <p>Automatically scans pull requests and detects vulnerabilities in AI-generated code.</p>
         
         <div class="hero-actions">
-            <button class="btn-hero primary" onclick="scrollToScanner()">
+            <a href="https://github.com/apps/zerofalse-security" class="btn-hero primary" target="_blank">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                Install on GitHub
+            </a>
+            
+            <button class="btn-hero secondary" onclick="scrollToScanner()">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                 Start Scanning Now
             </button>
-            
-            <button class="btn-hero secondary" onclick="window.open('https://github.com/apps/zerofalse', '_blank')">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-                Install on GitHub
-            </button>
+        </div>
+
+        <div class="trust-line">
+            <div class="status-dot"></div>
+            GitHub App. Scans every pull request automatically.
         </div>
 
         <div class="stats-grid">
             <div class="stat-item">
-                <div class="stat-value" id="statScans">-</div>
-                <div class="stat-label">Scans Run</div>
+                <div class="stat-value">GitHub-Native</div>
+                <div class="stat-label">Automated Workflow</div>
             </div>
             <div class="stat-item">
-                <div class="stat-value" id="statVulns">-</div>
-                <div class="stat-label">Risks Found</div>
+                <div class="stat-value">AI-Powered</div>
+                <div class="stat-label">Dynamic Analysis</div>
             </div>
             <div class="stat-item">
-                <div class="stat-value">99.9%</div>
-                <div class="stat-label">Uptime</div>
+                <div class="stat-value">Zero Trust</div>
+                <div class="stat-label">Enterprise Privacy</div>
             </div>
         </div>
     </section>
@@ -464,95 +240,30 @@
     <div class="editor-wrapper" id="scannerSection">
         <div class="editor-container">
             <div class="editor-header">
-                <div class="window-controls">
-                    <div class="control"></div><div class="control"></div><div class="control"></div>
-                </div>
+                <div class="window-controls"><div class="control"></div><div class="control"></div><div class="control"></div></div>
                 <div class="language-select">
                     <select id="languageSelect">
-                        <option value="javascript">JavaScript</option>
-                        <option value="typescript">TypeScript</option>
-                        <option value="python">Python</option>
-                        <option value="java">Java</option>
-                        <option value="go">Go</option>
+                        <option value="javascript">JavaScript</option><option value="python">Python</option><option value="go">Go</option>
                     </select>
                 </div>
             </div>
-
             <div class="editor-body">
                 <div class="gutter" id="lineNumbers">1</div>
-                <textarea id="codeInput" class="code-input" spellcheck="false" placeholder="// Paste your code here to analyze..."></textarea>
+                <textarea id="codeInput" class="code-input" spellcheck="false" placeholder="// Paste code to analyze..."></textarea>
             </div>
-
             <div id="scanResult"></div>
-
             <div class="editor-footer">
-                <div class="status"><span class="dot"></span> Ready to scan</div>
+                <div class="status"><span class="dot"></span> Ready</div>
                 <button id="scanBtn" class="btn-scan" onclick="performScan()">Analyze Code</button>
             </div>
         </div>
     </div>
 
     <section id="features">
-        <div class="section-title">
-            <h2>How ZeroFalse Works</h2>
-            <p>Enterprise-grade security analysis pipeline.</p>
-        </div>
         <div class="features-grid">
-            <div class="feature-card">
-                <span class="feature-icon">🔍</span>
-                <h3>Deep Static Analysis</h3>
-                <p>AST parsing and pattern detection identifies vulnerabilities with surgical precision without running the code.</p>
-            </div>
-            <div class="feature-card">
-                <span class="feature-icon">🤖</span>
-                <h3>AI Risk Classification</h3>
-                <p>Machine learning evaluates exploitability and reduces false positives dramatically compared to traditional tools.</p>
-            </div>
-            <div class="feature-card">
-                <span class="feature-icon">⚡</span>
-                <h3>Actionable Fixes</h3>
-                <p>Don't just find bugs. Get production-ready code fixes that you can copy and paste immediately.</p>
-            </div>
-        </div>
-    </section>
-
-  <section id="pricing">
-        <div class="section-title">
-            <h2>Simple Pricing</h2>
-            <p>Start free, upgrade when you scale.</p>
-        </div>
-        <div class="pricing-grid">
-            <div class="pricing-card">
-                <div class="plan-name">STARTER</div>
-                <div class="plan-price">$0</div>
-                <ul class="plan-features">
-                    <li>10 scans per month</li>
-                    <li>Basic detection</li>
-                    <li>Community support</li>
-                </ul>
-                <button class="btn-plan">Get Started</button>
-            </div>
-            <div class="pricing-card featured">
-                <div class="plan-name">PRO</div>
-                <div class="plan-price">$49</div>
-                <ul class="plan-features">
-                    <li>Unlimited scans</li>
-                    <li>Advanced AI models</li>
-                    <li>Priority support</li>
-                    <li>Private repos</li>
-                </ul>
-                <button class="btn-plan">Start Free Trial</button>
-            </div>
-            <div class="pricing-card">
-                <div class="plan-name">ENTERPRISE</div>
-                <div class="plan-price">Custom</div>
-                <ul class="plan-features">
-                    <li>SLA Guarantees</li>
-                    <li>On-premise</li>
-                    <li>Dedicated account manager</li>
-                </ul>
-                <button class="btn-plan">Contact Sales</button>
-            </div>
+            <div class="feature-card"><h3>🔍 Static Analysis</h3><p>AST parsing identifies vulnerabilities with surgical precision.</p></div>
+            <div class="feature-card"><h3>🤖 AI Classification</h3><p>Machine learning reduces false positives dramatically.</p></div>
+            <div class="feature-card"><h3>⚡ Actionable Fixes</h3><p>Get production-ready code fixes you can apply immediately.</p></div>
         </div>
     </section>
 
@@ -561,63 +272,26 @@
 <footer>
     <div class="container">
         <div class="footer-grid">
-            <div class="footer-brand">
-                <h4>ZeroFalse</h4>
-                <p>Security for the AI era. Protecting modern development workflows with intelligent static analysis.</p>
-            </div>
-            <div class="footer-col">
-                <h5>Product</h5>
-                <ul>
-                    <li><a href="#">Scanner</a></li>
-                    <li><a href="#">Integrations</a></li>
-                    <li><a href="#">Changelog</a></li>
-                </ul>
-            </div>
-            <div class="footer-col">
-                <h5>Company</h5>
-                <ul>
-                    <li><a href="#">About</a></li>
-                    <li><a href="#">Blog</a></li>
-                    <li><a href="#">Careers</a></li>
-                </ul>
-            </div>
-            <div class="footer-col">
-                <h5>Legal</h5>
-                <ul>
-                    <li><a href="#">Privacy</a></li>
-                    <li><a href="#">Terms</a></li>
-                </ul>
-            </div>
+            <div class="footer-brand"><h4>ZeroFalse</h4><p>Security for the AI era. Protecting modern development workflows.</p></div>
+            <div class="footer-col"><h5>Product</h5><ul><li><a href="#">Scanner</a></li></ul></div>
+            <div class="footer-col"><h5>Company</h5><ul><li><a href="#">About</a></li></ul></div>
+            <div class="footer-col"><h5>Legal</h5><ul><li><a href="#">Privacy</a></li></ul></div>
         </div>
-        <div class="footer-bottom">
-            <div>© 2026 ZeroFalse Inc.</div>
-            <div>Designed for Developers</div>
-        </div>
+        <div class="footer-bottom"><div>© 2026 ZeroFalse Inc.</div><div>Designed for Developers</div></div>
     </div>
 </footer>
 
 <script>
-// 1. API CONFIG
     const API_URL = "https://zerofalse-production-1dca.up.railway.app/api";
-    // 2. DOM ELEMENTS
     const dom = {
         input: document.getElementById("codeInput"),
         lines: document.getElementById("lineNumbers"),
         lang: document.getElementById("languageSelect"),
         result: document.getElementById("scanResult"),
-        btn: document.getElementById("scanBtn"),
-        stats: {
-            scans: document.getElementById("statScans"),
-            vulns: document.getElementById("statVulns")
-        }
+        btn: document.getElementById("scanBtn")
     };
 
-    // 3. INIT
-    document.addEventListener("DOMContentLoaded", () => {
-        initEditor();
-        fetchStats();
-        setInterval(fetchStats, 30000);
-    });
+    document.addEventListener("DOMContentLoaded", () => { initEditor(); });
 
     function initEditor() {
         if (!dom.input) return;
@@ -625,103 +299,48 @@
             const lines = dom.input.value.split("\n").length;
             dom.lines.innerHTML = Array.from({ length: lines }, (_, i) => i + 1).join("<br>");
         };
-        dom.input.addEventListener("scroll", () => { dom.lines.scrollTop = dom.input.scrollTop; });
         dom.input.addEventListener("input", updateLines);
         updateLines();
     }
 
-    // Scroll to Scanner Helper
     function scrollToScanner() {
         document.getElementById('scannerSection').scrollIntoView({ behavior: 'smooth' });
-        setTimeout(() => dom.input.focus(), 500);
     }
 
-    // 4. CORE SCAN LOGIC
     async function performScan() {
         const code = dom.input.value.trim();
-        
-        if (!code) {
-            renderError("Please paste some code to analyze.");
-            return;
-        }
-
-        setLoading(true);
+        if (!code) return;
+        dom.btn.disabled = true;
+        dom.btn.textContent = "Analyzing...";
 
         try {
-            const controller = new AbortController();
-            setTimeout(() => controller.abort(), 25000);
-
             const res = await fetch(`${API_URL}/scan`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    code,
-                    language: dom.lang.value,
-                    filename: `input.${dom.lang.value === 'javascript' ? 'js' : 'txt'}`,
-                    repo: "web-client",
-                    prNumber: null
-                }),
-                signal: controller.signal
+                body: JSON.stringify({ code, language: dom.lang.value, filename: "input.js", repo: "web-client" })
             });
-
-            if (!res.ok) throw new Error("Analysis service unreachable");
-            
             const data = await res.json();
-            
-            // Handle different backend response structures
-            let scanData = data.scan || data;
-            if(!scanData.findings && data.findings) scanData = data;
-            
-            renderResults(scanData);
-            fetchStats();
-
+            renderResults(data.scan || data);
         } catch (err) {
-            console.error(err);
-            renderError("Analysis failed. Please try again.");
+            renderError("Analysis failed.");
         } finally {
-            setLoading(false);
+            dom.btn.disabled = false;
+            dom.btn.textContent = "Analyze Code";
         }
     }
 
-    // 5. RENDER RESULTS
     function renderResults(scan) {
         dom.result.innerHTML = "";
         dom.result.style.display = 'block';
-
         const findings = scan.findings || [];
-
         if (findings.length === 0) {
-            dom.result.innerHTML = `
-                <div class="state-empty" style="color: var(--success)">
-                    <span style="font-size: 24px">✅</span><br><br>
-                    <strong>No vulnerabilities detected.</strong><br>
-                    Code appears safe for deployment.
-                </div>
-            `;
+            dom.result.innerHTML = `<div class="state-empty">✅ No vulnerabilities detected.</div>`;
             return;
         }
-
-        const header = document.createElement('div');
-        header.className = 'result-header';
-        header.textContent = `ANALYSIS REPORT: ${findings.length} ISSUES FOUND`;
-        dom.result.appendChild(header);
-
         findings.forEach(f => {
-            const severity = (f.severity || 'low').toLowerCase();
-            let severityClass = 'severity-low';
-            if (severity.includes('high') || severity.includes('critical')) severityClass = 'severity-high';
-            else if (severity.includes('medium')) severityClass = 'severity-medium';
-
             const card = document.createElement('div');
             card.className = 'vulnerability-card';
-            card.innerHTML = `
-                <div class="vuln-title">
-                    <div class="${severityClass}"></div>
-                    <span>${escapeHtml(f.type || "Issue")}</span>
-                </div>
-                <div class="vuln-desc">${escapeHtml(f.description || "")}</div>
-                ${f.fix ? `<div class="vuln-fix">${escapeHtml(f.fix)}</div>` : ''}
-            `;
+            card.innerHTML = `<div class="vuln-title"><div class="severity-high"></div><span>${f.type}</span></div><div class="vuln-desc">${f.description}</div><div class="vuln-fix">${f.fix || ''}</div>`;
             dom.result.appendChild(card);
         });
     }
@@ -729,39 +348,6 @@
     function renderError(msg) {
         dom.result.innerHTML = `<div class="state-empty" style="color: var(--error)">⚠️ ${msg}</div>`;
         dom.result.style.display = 'block';
-    }
-
-    function setLoading(isLoading) {
-        if (isLoading) {
-            dom.btn.disabled = true;
-            dom.btn.textContent = "Analyzing...";
-        } else {
-            dom.btn.disabled = false;
-            dom.btn.textContent = "Analyze Code";
-        }
-    }
-
-    // 6. UTILITIES
-    async function fetchStats() {
-        try {
-            const res = await fetch(`${API_URL}/scan`);
-            if (res.ok) {
-                const data = await res.json();
-                if (data.stats) {
-                    dom.stats.scans.textContent = formatNumber(data.stats.totalScans);
-                    dom.stats.vulns.textContent = formatNumber(data.stats.totalFindings);
-                }
-            }
-        } catch (e) {}
-    }
-
-    function escapeHtml(text) {
-        if (!text) return "";
-        return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
-
-    function formatNumber(num) {
-        return new Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(num || 0);
     }
 </script>
 
