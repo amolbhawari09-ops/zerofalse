@@ -4,10 +4,9 @@ const WebhookController = require('../controllers/webhookController');
 
 router.post('/github', async (req, res) => {
   try {
-    // This will appear in Railway to confirm the hit
     console.log("📩 GitHub webhook received - Entering Handler");
     
-    // Direct call - no context issues
+    // Direct call - context issues are solved by the new controller structure
     await WebhookController.handleGitHubWebhook(req, res);
 
   } catch (error) {
