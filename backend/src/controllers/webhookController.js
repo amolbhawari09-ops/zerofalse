@@ -6,26 +6,11 @@ const logger = require('../utils/logger');
 // ======================================================
 // HELPERS
 // ======================================================
-const CODE_EXTENSIONS = [
-  '.js', '.jsx', '.ts', '.tsx',
-  '.py', '.pyw',
-  '.java',
-  '.go',
-  '.rb',
-  '.php',
-  '.c', '.cpp', '.h',
-  '.cs',
-  '.swift',
-  '.kt', '.kts',
-  '.rs',
-  '.scala', '.sc'
-];
+const CODE_EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx', '.py', '.pyw', '.java', '.go', '.rb', '.php', '.c', '.cpp', '.h', '.cs', '.swift', '.kt', '.kts', '.rs', '.scala', '.sc'];
 
 function shouldScanFile(filename) {
   if (!filename) return false;
-  return CODE_EXTENSIONS.some(ext =>
-    filename.toLowerCase().endsWith(ext)
-  );
+  return CODE_EXTENSIONS.some(ext => filename.toLowerCase().endsWith(ext));
 }
 
 // ======================================================
@@ -33,10 +18,7 @@ function shouldScanFile(filename) {
 // ======================================================
 
 async function verifySignature(req) {
-  logger.info("=================================");
   logger.info("🔐 SIGNATURE VERIFICATION START");
-  logger.info("=================================");
-
   try {
     const signature = req.headers['x-hub-signature-256'];
     const secret = process.env.GITHUB_WEBHOOK_SECRET;
@@ -46,16 +28,10 @@ async function verifySignature(req) {
       return false;
     }
 
-    const expectedSignature = 'sha256=' +
-      crypto.createHmac('sha256', secret)
-        .update(req.rawBody)
-        .digest('hex');
+    const expectedSignature = 'sha256=' + 
+      crypto.createHmac('sha256', secret).update(req.rawBody).digest('hex');
 
-    const valid = crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expectedSignature)
-    );
-
+    const valid = crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
     logger.info("Signature valid:", valid);
     return valid;
   } catch (error) {
@@ -68,10 +44,7 @@ async function handlePullRequest(payload) {
   logger.info("🚀 PR HANDLER START");
   try {
     const action = payload.action;
-    if (!["opened", "synchronize"].includes(action)) {
-      logger.info("Skipping unsupported PR action");
-      return;
-    }
+    if (!["opened", "synchronize"].includes(action)) return;
 
     const installationId = payload.installation?.id;
     const owner = payload.repository.owner.login;
@@ -81,26 +54,16 @@ async function handlePullRequest(payload) {
 
     const token = await GitHubService.getInstallationToken(installationId);
     const files = await GitHubService.getPullRequestFiles(owner, repo, prNumber, token);
-    const codeFiles = files.filter(file => shouldScanFile(file.filename));
+    const codeFiles = files.filter(f => shouldScanFile(f.filename));
 
-    if (codeFiles.length === 0) {
-      logger.info("No scannable files");
-      return;
-    }
+    if (codeFiles.length === 0) return;
 
     let results = [];
     for (const file of codeFiles) {
       const content = await GitHubService.getFileContent(owner, repo, file.filename, ref, token);
       if (!content) continue;
 
-      // Ensure the repo full name is passed correctly for the scanner
-      const scanResult = await ScannerService.scanCode(
-        content, 
-        file.filename, 
-        payload.repository.full_name, 
-        prNumber
-      );
-      
+      const scanResult = await ScannerService.scanCode(content, file.filename, payload.repository.full_name, prNumber);
       results.push({ filename: file.filename, findings: scanResult?.findings || [] });
     }
 
@@ -122,7 +85,7 @@ module.exports = {
   handleGitHubWebhook: async (req, res) => {
     logger.info("📩 WEBHOOK RECEIVED");
     try {
-      // Step 1: Verify Signature (No 'this' needed anymore)
+      // Step 1: Verify Signature (No 'this' required)
       const valid = await verifySignature(req);
       if (!valid) {
         logger.warn("❌ Invalid signature");
