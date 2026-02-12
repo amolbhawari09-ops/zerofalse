@@ -70,15 +70,15 @@ module.exports = {
   },
 
   /**
-   * UPGRADED: "Perfect Enterprise" Format
-   * Vertical scannable cards, dividers, and dynamic Risk Score.
+   * UPGRADED: "Perfect Enterprise" Display
+   * Renders the final, de-duplicated results with professional dividers.
    */
   createPRComment: async (owner, repo, prNumber, scanData, token) => {
-    // 🛡️ Ensure findings is always an array
+    // 🛡️ Guard: Ensure we are handling an object with findings
     const findings = Array.isArray(scanData.findings) ? scanData.findings : [];
     const score = scanData.riskScore !== undefined ? scanData.riskScore : "N/A";
 
-    // 1. Calculate Stats (Hides empty levels)
+    // 1. Summary Calculation
     const stats = {
       critical: findings.filter(f => f.severity?.toLowerCase() === 'critical').length,
       high: findings.filter(f => f.severity?.toLowerCase() === 'high').length,
@@ -86,12 +86,12 @@ module.exports = {
       total: findings.length
     };
 
-    // 2. Build Header & Summary Card
+    // 2. Build The Report Body
     let body = `## 🛡️ ZeroFalse Security Scan Results\n\n`;
     body += `**Scan Status:** COMPLETED\n`;
     body += `**Risk Score:** ${score}/10\n`;
     
-    // Scannable line of findings
+    // Dynamic Stats Line
     const counts = [];
     if (stats.critical > 0) counts.push(`Critical: ${stats.critical}`);
     if (stats.high > 0) counts.push(`High: ${stats.high}`);
@@ -100,19 +100,17 @@ module.exports = {
     body += counts.length > 0 ? `**${counts.join(' | ')}**\n\n` : `**No Issues Found**\n\n`;
     body += `────────────────────────────\n\n`;
 
-    // 3. Handle Findings List
+    // 3. Render Unique Vulnerability Cards
     if (stats.total === 0) {
       body += `✅ **No vulnerabilities detected.** Your code follows security best practices.`;
     } else {
       findings.forEach((f) => {
-        const sev = (f.severity || 'HIGH').toUpperCase();
+        const severity = (f.severity || 'HIGH').toUpperCase();
         
-        body += `**${sev}: ${f.type || 'Security Risk'}**\n`;
+        body += `**${severity}: ${f.type || 'Security Risk'}**\n`;
         body += `**Location:** \`${f.filename || 'N/A'}:${f.line || '?'}\`\n`;
-        
-        // Use the new 1-sentence fields from the LLM
         body += `**Issue:** ${f.issue || f.description || 'Vulnerability detected.'}\n`;
-        body += `**Fix:** ${f.fix_instruction || 'Update the implementation to follow security standards.'}\n\n`;
+        body += `**Fix:** ${f.fix_instruction || f.fix || 'Follow secure coding practices.'}\n\n`;
         
         body += `────────────────────────────\n\n`;
       });
@@ -122,7 +120,7 @@ module.exports = {
 
     body += `\n\n_ZeroFalse — AI Security for AI-Generated Code_`;
 
-    // 4. Post to GitHub
+    // 4. Send to GitHub
     try {
       return await axios.post(`${baseURL}/repos/${owner}/${repo}/issues/${prNumber}/comments`, 
         { body }, 
