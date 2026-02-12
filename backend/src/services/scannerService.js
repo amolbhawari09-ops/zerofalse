@@ -29,49 +29,48 @@ async function saveScan(scan) {
 }
 
 /**
- * 🎯 THE PERFECT FIX: Semantic & Proximity Merging
- * Eliminates duplicates by checking both line distance AND vulnerability type.
+ * 🎯 THE ULTIMATE DEDUPLICATION ENGINE
+ * Merges Pattern and AI findings by checking Line Proximity + Semantic Similarity.
  */
 function mergeFindings(patternFindings, llmFindings) {
-  const safeLLM = Array.isArray(llmFindings) ? llmFindings : [];
-  const safePattern = Array.isArray(patternFindings) ? patternFindings : [];
+  const aiResults = Array.isArray(llmFindings) ? llmFindings : [];
+  const patternResults = Array.isArray(patternFindings) ? patternFindings : [];
 
-  // 1. AI findings are the Master (Source of Truth)
-  const merged = [...safeLLM];
-  
-  // 2. Identify "Danger Zones" already flagged by the AI
-  // We use a larger 3-line buffer to account for multi-line function calls
-  const coveredZones = safeLLM.map(f => ({
-    line: f.line,
-    type: f.type.toLowerCase()
-  }));
-  
-  for (const pf of safePattern) {
-    const pType = pf.type.toLowerCase();
-    
-    // 3. Smart Filter: Check if a pattern match is already covered by an AI finding
-    const isDuplicate = coveredZones.some(zone => {
-      const isLineMatch = Math.abs(zone.line - pf.line) <= 2; // Check +/- 2 lines
+  // Start with AI findings as the Source of Truth
+  const merged = [...aiResults];
+
+  // Helper to normalize types for comparison
+  const getBaseType = (type) => {
+    const t = type.toLowerCase();
+    if (t.includes('execution') || t.includes('eval') || t.includes('rce') || t.includes('injection')) return 'code_exec';
+    if (t.includes('sql')) return 'sql_inj';
+    if (t.includes('secret') || t.includes('password') || t.includes('key')) return 'credential';
+    return t;
+  };
+
+  for (const pf of patternResults) {
+    const pBase = getBaseType(pf.type);
+
+    // Check if any AI finding is already covering this exact issue
+    const isDuplicate = aiResults.some(af => {
+      const isLineMatch = Math.abs(af.line - pf.line) <= 2;
+      const aBase = getBaseType(af.type);
       
-      // Check if the security meanings are the same (Semantic Check)
-      const isSemanticMatch = 
-        (pType.includes('injection') && zone.type.includes('execution')) ||
-        (pType.includes('execution') && zone.type.includes('injection')) ||
-        (pType.includes('secret') && zone.type.includes('password')) ||
-        (pType === zone.type);
-
-      return isLineMatch && isSemanticMatch;
+      // It's a duplicate if it's on the same line AND same general category
+      return isLineMatch && (aBase === pBase);
     });
 
     if (!isDuplicate) {
       merged.push({
         ...pf,
-        issue: pf.issue || pf.description || "Security pattern match detected.",
-        fix_instruction: pf.fix_instruction || pf.fix || "Follow secure coding practices."
+        issue: pf.description || "Security pattern match detected.",
+        fix_instruction: pf.fix || "Follow secure coding practices."
       });
     }
   }
-  return merged;
+
+  // Final sort by line number for a professional report
+  return merged.sort((a, b) => a.line - b.line);
 }
 
 module.exports = {
@@ -83,18 +82,22 @@ module.exports = {
     try {
       if (!code) throw new Error("Empty code provided");
 
-      // A. Pattern Engine (The Guard) - Fast but basic
+      // 1. Run Engines
       const patternFindings = quickPatternScan(code, language) || [];
-      
-      // B. AI Engine (The Brain) - Slow but deep
       const llmResult = await LLMService.analyzeCode(code, filename, language);
       
-      const aiFindings = Array.isArray(llmResult?.findings) ? llmResult.findings : [];
-      const riskScore = llmResult?.riskScore || 0;
+      const aiFindings = llmResult?.findings || [];
+      
+      // 2. SMART MERGE (Eliminates the "7 instead of 4" bug)
+      const findings = mergeFindings(patternFindings, aiFindings).map(f => ({
+        ...f,
+        filename: f.filename || filename,
+        type: f.type.toUpperCase() // Clean display
+      }));
 
-      // C. Perform the "Perfect" Smart Merge
-      const rawFindings = mergeFindings(patternFindings, aiFindings);
-      const findings = rawFindings.map(f => ({ ...f, filename: f.filename || filename }));
+      // 3. Risk Score Calibration
+      // We take the AI's risk score but cap it if no findings exist
+      const riskScore = findings.length === 0 ? 0 : (llmResult?.riskScore || 0);
 
       const scan = {
         id: scanId,
@@ -112,7 +115,7 @@ module.exports = {
 
       await saveScan(scan);
       
-      logger.info(`✅ Scan finished: ${findings.length} UNIQUE findings. Score: ${riskScore}`); //
+      logger.info(`✅ Scan finished: ${findings.length} UNIQUE findings. Score: ${riskScore}`);
       return scan; 
 
     } catch (error) {
