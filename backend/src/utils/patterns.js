@@ -1,126 +1,77 @@
-const axios = require('axios');
-const LLMService = require('./llmService');
-const { quickPatternScan } = require('../utils/patterns');
-const { generateId, hashData } = require('../utils/crypto');
-const { connectDatabase, memoryStore } = require('../config/database');
-const logger = require('../utils/logger');
-
-let dbInstance = null;
-if (!memoryStore.scans) memoryStore.scans = [];
-
-async function getDbSafe() {
-  try {
-    if (!dbInstance) dbInstance = await connectDatabase();
-    return dbInstance;
-  } catch (error) {
-    logger.error("Database connection failed:", error.message);
-    return null;
-  }
-}
-
-async function saveScan(scan) {
-  try {
-    const db = await getDbSafe();
-    if (db) await db.collection("scans").insertOne(scan);
-    else memoryStore.scans.push(scan);
-  } catch (error) {
-    logger.error("saveScan failed:", error.message);
-  }
-}
-
 /**
- * 🎯 THE ULTIMATE DEDUPLICATION ENGINE
- * Merges Pattern and AI findings by checking Line Proximity + Semantic Similarity.
+ * UPGRADED: Standardized Security Patterns
+ * Uses strict naming conventions to match the LLM Taxonomy and prevent duplicates.
  */
-function mergeFindings(patternFindings, llmFindings) {
-  const aiResults = Array.isArray(llmFindings) ? llmFindings : [];
-  const patternResults = Array.isArray(patternFindings) ? patternFindings : [];
-
-  // Start with AI findings as the Source of Truth
-  const merged = [...aiResults];
-
-  // Helper to normalize types for comparison
-  const getBaseType = (type) => {
-    const t = type.toLowerCase();
-    if (t.includes('execution') || t.includes('eval') || t.includes('rce') || t.includes('injection')) return 'code_exec';
-    if (t.includes('sql')) return 'sql_inj';
-    if (t.includes('secret') || t.includes('password') || t.includes('key')) return 'credential';
-    return t;
-  };
-
-  for (const pf of patternResults) {
-    const pBase = getBaseType(pf.type);
-
-    // Check if any AI finding is already covering this exact issue
-    const isDuplicate = aiResults.some(af => {
-      const isLineMatch = Math.abs(af.line - pf.line) <= 2;
-      const aBase = getBaseType(af.type);
-      
-      // It's a duplicate if it's on the same line AND same general category
-      return isLineMatch && (aBase === pBase);
-    });
-
-    if (!isDuplicate) {
-      merged.push({
-        ...pf,
-        issue: pf.description || "Security pattern match detected.",
-        fix_instruction: pf.fix || "Follow secure coding practices."
-      });
-    }
+const SECURITY_PATTERNS = {
+  dangerousFunctions: {
+    // Standardized name for RCE/Injection group
+    name: 'RCE', 
+    severity: 'critical',
+    // Catches eval(), exec(), Function(), and setTimeout with strings
+    patterns: [
+      /\beval\s*\(/, 
+      /\bexec\s*\(/, 
+      /\bFunction\s*\(/, 
+      /setTimeout\s*\(\s*['"`]/
+    ],
+    languages: ['javascript', 'typescript']
+  },
+  hardcodedSecrets: {
+    // Standardized name for Secrets group
+    name: 'SECRET', 
+    severity: 'critical',
+    patterns: [
+      // Catches: password, secret, token, apikey, access_key
+      /(password|secret|token|apikey|access_key|private_key)\s*[:=]\s*['"`][^'"]{4,}['"`]/i,
+      // Catches common provider prefixes: ghp_ (GitHub), sk_ (Stripe), etc.
+      /['"`](ghp_|sk_live_|key-)[a-zA-Z0-9]{20,}/i
+    ],
+    languages: ['javascript', 'typescript', 'python', 'yaml', 'json']
+  },
+  sqlInjection: {
+    // Standardized name for SQL group
+    name: 'SQL_INJECTION', 
+    severity: 'high',
+    // Catches concatenation or template literals in SQL-like strings
+    patterns: [
+      /(SELECT|INSERT|UPDATE|DELETE|DROP).*\+.*\s*['"`]/i,
+      /(SELECT|INSERT|UPDATE|DELETE|DROP).*?\$\{.*?}/i 
+    ],
+    languages: ['javascript', 'typescript', 'python']
   }
-
-  // Final sort by line number for a professional report
-  return merged.sort((a, b) => a.line - b.line);
-}
+};
 
 module.exports = {
-  scanCode: async (code, filename = "input.js", repo = "manual", prNumber = null, language = "javascript") => {
-    const scanId = generateId();
-    const startTime = Date.now();
-    logger.info(`🔍 Scan started: ${filename}`);
+  quickPatternScan: (code, language) => {
+    const findings = [];
+    if (!code) return findings;
 
-    try {
-      if (!code) throw new Error("Empty code provided");
+    const lines = code.split('\n');
+    const langKey = language.toLowerCase();
+    
+    for (const [key, pattern] of Object.entries(SECURITY_PATTERNS)) {
+      // 1. Language Guard
+      if (!pattern.languages.includes(langKey)) continue;
 
-      // 1. Run Engines
-      const patternFindings = quickPatternScan(code, language) || [];
-      const llmResult = await LLMService.analyzeCode(code, filename, language);
-      
-      const aiFindings = llmResult?.findings || [];
-      
-      // 2. SMART MERGE (Eliminates the "7 instead of 4" bug)
-      const findings = mergeFindings(patternFindings, aiFindings).map(f => ({
-        ...f,
-        filename: f.filename || filename,
-        type: f.type.toUpperCase() // Clean display
-      }));
-
-      // 3. Risk Score Calibration
-      // We take the AI's risk score but cap it if no findings exist
-      const riskScore = findings.length === 0 ? 0 : (llmResult?.riskScore || 0);
-
-      const scan = {
-        id: scanId,
-        repo,
-        prNumber,
-        filename,
-        language,
-        codeHash: hashData(code),
-        findings,
-        riskScore, 
-        timestamp: new Date(),
-        scanDuration: Date.now() - startTime,
-        status: "completed"
-      };
-
-      await saveScan(scan);
-      
-      logger.info(`✅ Scan finished: ${findings.length} UNIQUE findings. Score: ${riskScore}`);
-      return scan; 
-
-    } catch (error) {
-      logger.error(`🚨 Scan fatal error: ${error.message}`);
-      return { id: scanId, findings: [], riskScore: 0, status: "failed" };
+      lines.forEach((lineText, index) => {
+        for (const regex of pattern.patterns) {
+          if (regex.test(lineText)) {
+            findings.push({
+              type: pattern.name, // Now returns "RCE", "SECRET", or "SQL_INJECTION"
+              severity: pattern.severity,
+              line: index + 1,
+              filename: "", 
+              description: `Pattern match: ${pattern.name} detected.`,
+              fix: "Verify user input sanitization or use environment variables for sensitive data.",
+              confidence: 80
+            });
+            // Once a line matches a specific pattern type, move to next line 
+            // to avoid multiple regexes flagging the same line twice.
+            break; 
+          }
+        }
+      });
     }
+    return findings;
   }
 };
