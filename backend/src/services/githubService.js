@@ -70,65 +70,57 @@ module.exports = {
   },
 
   /**
-   * UPGRADED: Minimalist Security Engineer Format
-   * Removes zero-count clutter and adds technical 'Impact' sections.
+   * UPGRADED: "Perfect Enterprise" Format
+   * Vertical scannable cards, dividers, and dynamic Risk Score.
    */
-  createPRComment: async (owner, repo, prNumber, findings, token) => {
-    const safeFindings = Array.isArray(findings) ? findings : [];
+  createPRComment: async (owner, repo, prNumber, scanData, token) => {
+    // 🛡️ Ensure findings is always an array
+    const findings = Array.isArray(scanData.findings) ? scanData.findings : [];
+    const score = scanData.riskScore !== undefined ? scanData.riskScore : "N/A";
 
-    // 1. Calculate Summary Stats
+    // 1. Calculate Stats (Hides empty levels)
     const stats = {
-      critical: safeFindings.filter(f => f.severity?.toLowerCase() === 'critical').length,
-      high: safeFindings.filter(f => f.severity?.toLowerCase() === 'high').length,
-      medium: safeFindings.filter(f => f.severity?.toLowerCase() === 'medium').length,
-      low: safeFindings.filter(f => f.severity?.toLowerCase() === 'low').length,
-      total: safeFindings.length
+      critical: findings.filter(f => f.severity?.toLowerCase() === 'critical').length,
+      high: findings.filter(f => f.severity?.toLowerCase() === 'high').length,
+      medium: findings.filter(f => f.severity?.toLowerCase() === 'medium').length,
+      total: findings.length
     };
 
-    // 2. Build Smart Header (Only show what exists)
-    let body = `## 🛡️ ZeroFalse Security Audit\n\n`;
+    // 2. Build Header & Summary Card
+    let body = `## 🛡️ ZeroFalse Security Scan Results\n\n`;
     body += `**Scan Status:** COMPLETED\n`;
-    body += `**Total Issues Found:** ${stats.total}\n\n`;
+    body += `**Risk Score:** ${score}/10\n`;
+    
+    // Scannable line of findings
+    const counts = [];
+    if (stats.critical > 0) counts.push(`Critical: ${stats.critical}`);
+    if (stats.high > 0) counts.push(`High: ${stats.high}`);
+    if (stats.medium > 0) counts.push(`Medium: ${stats.medium}`);
+    
+    body += counts.length > 0 ? `**${counts.join(' | ')}**\n\n` : `**No Issues Found**\n\n`;
+    body += `────────────────────────────\n\n`;
 
-    if (stats.total > 0) {
-      body += `### 📊 Risk Profile:\n`;
-      if (stats.critical > 0) body += `- 🔴 **Critical:** ${stats.critical}\n`;
-      if (stats.high > 0) body += `- 🟠 **High:** ${stats.high}\n`;
-      if (stats.medium > 0) body += `- 🟡 **Medium:** ${stats.medium}\n`;
-      if (stats.low > 0) body += `- 🔵 **Low:** ${stats.low}\n`;
-      body += `\n---\n\n`;
-    }
-
-    // 3. Handle Findings
+    // 3. Handle Findings List
     if (stats.total === 0) {
       body += `✅ **No vulnerabilities detected.** Your code follows security best practices.`;
     } else {
-      safeFindings.forEach((f) => {
+      findings.forEach((f) => {
         const sev = (f.severity || 'HIGH').toUpperCase();
-        const icon = sev === 'CRITICAL' ? '🔴' : sev === 'HIGH' ? '🟠' : '🟡';
         
-        body += `### ${icon} ${sev}: ${f.type || 'Security Risk'}\n`;
-        body += `**Location:** \`${f.filename || 'N/A'}\` (Line ${f.line || 'N/A'})\n\n`;
+        body += `**${sev}: ${f.type || 'Security Risk'}**\n`;
+        body += `**Location:** \`${f.filename || 'N/A'}:${f.line || '?'}\`\n`;
         
-        // UPGRADE: Concise Expert Reasoning
-        if (f.description) {
-          body += `**🔍 Why it's dangerous:** ${f.description}\n\n`;
-        }
-
-        // UPGRADE: Business/Technical Impact
-        if (f.impact) {
-          body += `**⚠️ Impact:** ${f.impact}\n\n`;
-        }
-
-        if (f.fix) {
-          body += `**🛡️ Recommended Fix:**\n`;
-          body += `\`\`\`javascript\n${f.fix}\n\`\`\`\n`;
-        }
-        body += `--- \n\n`;
+        // Use the new 1-sentence fields from the LLM
+        body += `**Issue:** ${f.issue || f.description || 'Vulnerability detected.'}\n`;
+        body += `**Fix:** ${f.fix_instruction || 'Update the implementation to follow security standards.'}\n\n`;
+        
+        body += `────────────────────────────\n\n`;
       });
+      
+      body += `**⚠️ Fix these issues before merging.**`;
     }
 
-    body += `_ZeroFalse — AI Security for AI-Generated Code_`;
+    body += `\n\n_ZeroFalse — AI Security for AI-Generated Code_`;
 
     // 4. Post to GitHub
     try {
