@@ -48,34 +48,45 @@ async function handlePullRequest(payload) {
   const scanTargets = files.filter(f => shouldScanFile(f.filename));
   logger.info(`Found ${scanTargets.length} files to analyze`);
 
-  // ✅ UPGRADE 1: Initialize a list to collect all findings
+  // ✅ UPGRADE 1: Collect findings and track the highest risk score
   let allFindings = [];
+  let maxRiskScore = 0;
 
   for (const file of scanTargets) {
     const content = await GitHubService.getFileContent(repository.owner.login, repository.name, file.filename, pull_request.head.sha, token);
     
     if (content) {
-      // ✅ UPGRADE 2: Capture the return value from the scanner
       const scanResult = await ScannerService.scanCode(content, file.filename, repository.full_name, pull_request.number);
       
-      // ✅ UPGRADE 3: Add the findings from this file to our master list
-      if (scanResult && Array.isArray(scanResult.findings)) {
-        allFindings = allFindings.concat(scanResult.findings);
+      if (scanResult) {
+        // ✅ UPGRADE 2: Capture findings
+        if (Array.isArray(scanResult.findings)) {
+          allFindings = allFindings.concat(scanResult.findings);
+        }
+        // ✅ UPGRADE 3: Capture the highest risk score from all scanned files
+        if (scanResult.riskScore > maxRiskScore) {
+          maxRiskScore = scanResult.riskScore;
+        }
       }
     }
   }
   
-  // ✅ UPGRADE 4: Pass the master list to the comment service
-  // Your githubService.js will now correctly count and format these issues
+  // ✅ UPGRADE 4: Pass a proper "Scan Data" object to the bot
+  // This ensures the bot sees both the findings AND the risk score
+  const finalScanData = {
+    findings: allFindings,
+    riskScore: maxRiskScore
+  };
+
   await GitHubService.createPRComment(
     repository.owner.login, 
     repository.name, 
     pull_request.number, 
-    allFindings, 
+    finalScanData, // Pass the object, not just an array
     token
   );
 
-  logger.info(`✅ Report posted to GitHub with ${allFindings.length} total findings`);
+  logger.info(`✅ Report posted to GitHub. Findings: ${allFindings.length}, Max Score: ${maxRiskScore}`);
 }
 
 // EXPORT
