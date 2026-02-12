@@ -29,31 +29,45 @@ async function saveScan(scan) {
 }
 
 /**
- * UPGRADED: Smart De-duplication Logic
- * Prevents double-counting by checking for overlaps in a 3-line window (+/- 1).
+ * 🎯 THE PERFECT FIX: Semantic & Proximity Merging
+ * Eliminates duplicates by checking both line distance AND vulnerability type.
  */
 function mergeFindings(patternFindings, llmFindings) {
   const safeLLM = Array.isArray(llmFindings) ? llmFindings : [];
   const safePattern = Array.isArray(patternFindings) ? patternFindings : [];
 
-  // 1. We treat AI results as the master "Source of Truth"
+  // 1. AI findings are the Master (Source of Truth)
   const merged = [...safeLLM];
   
-  // 2. Create a "Fuzzy Buffer" set of lines already claimed by the AI
-  const coveredLines = new Set();
-  safeLLM.forEach(f => {
-    coveredLines.add(f.line);
-    coveredLines.add(f.line - 1); // Buffer before
-    coveredLines.add(f.line + 1); // Buffer after
-  });
+  // 2. Identify "Danger Zones" already flagged by the AI
+  // We use a larger 3-line buffer to account for multi-line function calls
+  const coveredZones = safeLLM.map(f => ({
+    line: f.line,
+    type: f.type.toLowerCase()
+  }));
   
-  // 3. Only add pattern findings if they are in a completely different area
   for (const pf of safePattern) {
-    if (!coveredLines.has(pf.line)) {
+    const pType = pf.type.toLowerCase();
+    
+    // 3. Smart Filter: Check if a pattern match is already covered by an AI finding
+    const isDuplicate = coveredZones.some(zone => {
+      const isLineMatch = Math.abs(zone.line - pf.line) <= 2; // Check +/- 2 lines
+      
+      // Check if the security meanings are the same (Semantic Check)
+      const isSemanticMatch = 
+        (pType.includes('injection') && zone.type.includes('execution')) ||
+        (pType.includes('execution') && zone.type.includes('injection')) ||
+        (pType.includes('secret') && zone.type.includes('password')) ||
+        (pType === zone.type);
+
+      return isLineMatch && isSemanticMatch;
+    });
+
+    if (!isDuplicate) {
       merged.push({
         ...pf,
-        issue: pf.issue || pf.description || "Potential security compromise.",
-        fix_instruction: pf.fix_instruction || pf.fix || "Update implementation."
+        issue: pf.issue || pf.description || "Security pattern match detected.",
+        fix_instruction: pf.fix_instruction || pf.fix || "Follow secure coding practices."
       });
     }
   }
@@ -69,16 +83,16 @@ module.exports = {
     try {
       if (!code) throw new Error("Empty code provided");
 
-      // A. Pattern Engine (The Guard)
+      // A. Pattern Engine (The Guard) - Fast but basic
       const patternFindings = quickPatternScan(code, language) || [];
       
-      // B. AI Engine (The Brain)
+      // B. AI Engine (The Brain) - Slow but deep
       const llmResult = await LLMService.analyzeCode(code, filename, language);
       
       const aiFindings = Array.isArray(llmResult?.findings) ? llmResult.findings : [];
       const riskScore = llmResult?.riskScore || 0;
 
-      // C. Perform the Smart Merge to remove duplicates
+      // C. Perform the "Perfect" Smart Merge
       const rawFindings = mergeFindings(patternFindings, aiFindings);
       const findings = rawFindings.map(f => ({ ...f, filename: f.filename || filename }));
 
@@ -98,7 +112,7 @@ module.exports = {
 
       await saveScan(scan);
       
-      logger.info(`✅ Scan finished for ${filename}: ${findings.length} UNIQUE findings. Score: ${riskScore}`);
+      logger.info(`✅ Scan finished: ${findings.length} UNIQUE findings. Score: ${riskScore}`); //
       return scan; 
 
     } catch (error) {
