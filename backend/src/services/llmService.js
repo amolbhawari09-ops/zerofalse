@@ -20,33 +20,34 @@ function isProviderAvailable(provider) {
 }
 
 /**
- * UPGRADED: "Concise Security Engineer" Prompt
- * Forces 1-2 line explanations and includes 'impact' field.
+ * UPGRADED: "Enterprise Minimalist" Prompt
+ * Forces a 0-10 Risk Score and scannable 1-line findings.
  */
 function buildPrompt(code, filename, language) {
   return `ACT AS A SENIOR CYBERSECURITY AUDITOR. 
-Find critical vulnerabilities in the following ${language} code: "${filename}".
+Audit the following ${language} code in "${filename}" for critical vulnerabilities.
 
 STRICT DETECTION RULES:
-1. SECRETS: Flag any hardcoded passwords, tokens, or private keys.
-2. INJECTION: Flag 'eval()', 'exec()', or unsanitized user inputs in queries/commands.
-3. LOGIC: Flag weak crypto or insecure random generators.
+1. SECRETS: Flag hardcoded passwords, API keys, or private tokens.
+2. INJECTION: Flag 'eval()', 'exec()', or unsanitized user inputs in queries/system commands.
+3. LOGIC: Flag weak crypto, insecure random generators, or broken access control.
 
 RESPONSE REQUIREMENTS:
 - You must return ONLY valid JSON.
-- For 'description' and 'impact', keep text to 1-2 concise lines maximum.
-- If no issues are found, return "findings": [].
+- Provide a global "riskScore" from 0.0 to 10.0 for the entire file based on severity.
+- For each finding, provide exactly one concise sentence for "issue" and "fix_instruction".
+- If no issues are found, return "findings": [] and "riskScore": 0.0.
 
 JSON STRUCTURE:
 {
+  "riskScore": number,
   "findings": [
     {
       "line": number,
-      "severity": "critical" | "high" | "medium" | "low",
-      "type": "Vulnerability Category",
-      "description": "Short 1-line technical reason why this is dangerous.",
-      "impact": "1-line consequence if exploited.",
-      "fix": "Corrected code snippet",
+      "severity": "critical" | "high" | "medium",
+      "type": "Vulnerability Name",
+      "issue": "1-sentence technical risk description.",
+      "fix_instruction": "1-sentence fix action.",
       "confidence": number
     }
   ]
@@ -70,7 +71,7 @@ async function callGroq(prompt, config) {
       messages: [
         { 
           role: 'system', 
-          content: 'You are a ruthless security scanner. You only speak JSON. Be concise and technical.' 
+          content: 'You are a ruthless security scanner. You only speak JSON. Be extremely concise and technical.' 
         },
         { role: 'user', content: prompt }
       ],
@@ -117,8 +118,9 @@ module.exports = {
           continue;
         }
         
-        // Final normalization: ensure findings is an array
+        // Final normalization: ensure findings is an array and score exists
         return {
+          riskScore: result?.riskScore || 0.0,
           findings: Array.isArray(result?.findings) ? result.findings : [],
           provider,
           model: config.model
@@ -131,6 +133,6 @@ module.exports = {
     }
     
     logger.warn("⚠️ All LLM providers failed. Returning safe empty state.");
-    return { findings: [], summary: "LLM Scan Skipped", provider: "none" };
+    return { findings: [], riskScore: 0.0, summary: "LLM Scan Skipped", provider: "none" };
   }
 };
