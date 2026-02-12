@@ -42,20 +42,25 @@ async function saveScan(scan) {
 }
 
 /**
- * Ensures findings from different sources don't overlap 
- * and maintains a clean array structure.
+ * UPGRADED: Smart Merge
+ * Ensures AI findings (with rich Impact/Description data) take priority.
  */
 function mergeFindings(patternFindings, llmFindings) {
-  // ✅ FIX: Ensure both are arrays before spreading
   const safeLLM = Array.isArray(llmFindings) ? llmFindings : [];
   const safePattern = Array.isArray(patternFindings) ? patternFindings : [];
 
+  // Start with AI findings as they have the new "Security Engineer" context
   const merged = [...safeLLM];
   const seenLines = new Set(safeLLM.map(f => f.line));
   
   for (const pf of safePattern) {
+    // Only add pattern findings if the AI missed that specific line
     if (!seenLines.has(pf.line)) {
-      merged.push(pf);
+      merged.push({
+        ...pf,
+        impact: pf.impact || "Potential security compromise.", // Fallback if pattern has no impact
+        description: pf.description || `Pattern match for ${pf.type}`
+      });
     }
   }
   return merged;
@@ -82,13 +87,11 @@ module.exports = {
       try {
         const llmResult = await LLMService.analyzeCode(code, filename, language);
         
-        // ✅ CRITICAL FIX: The Data Normalizer
-        // This prevents the "filter is not a function" error and False Negatives
+        // Use the Data Normalizer to prevent crashes
         if (llmResult && Array.isArray(llmResult.findings)) {
           llmFindings = llmResult.findings;
           logger.info(`🤖 AI detected ${llmFindings.length} issues in ${filename}`);
         } else if (llmResult && llmResult.findings) {
-          // If the AI returned a single object instead of an array, wrap it
           llmFindings = [llmResult.findings];
           logger.warn(`⚠️ AI returned single finding object, normalized to array.`);
         }
@@ -96,8 +99,14 @@ module.exports = {
         logger.error(`❌ LLM Service Failure: ${llmError.message}`);
       }
 
-      // 3. Merge results and verify integrity
-      const findings = mergeFindings(patternFindings, llmFindings);
+      // 3. Merge results and inject metadata
+      const rawFindings = mergeFindings(patternFindings, llmFindings);
+      
+      // Ensure every finding has the filename attached for the GitHub report
+      const findings = rawFindings.map(f => ({
+        ...f,
+        filename: f.filename || filename
+      }));
 
       const scan = {
         id: scanId,
@@ -106,7 +115,7 @@ module.exports = {
         filename,
         language,
         codeHash: hashData(code),
-        findings, // This is the clean array the GitHub bot needs
+        findings,
         timestamp: new Date(),
         scanDuration: Date.now() - startTime,
         status: "completed"
