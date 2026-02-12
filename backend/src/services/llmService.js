@@ -20,24 +20,22 @@ function isProviderAvailable(provider) {
 }
 
 /**
- * UPGRADED: High-Intensity Security Prompt
- * Specifically tuned to eliminate False Negatives
+ * UPGRADED: "Concise Security Engineer" Prompt
+ * Forces 1-2 line explanations and includes 'impact' field.
  */
 function buildPrompt(code, filename, language) {
-  return `ACT AS A SENIOR CYBERSECURITY AUDITOR.
-Your mission is to find vulnerabilities in the following ${language} code for the file "${filename}".
+  return `ACT AS A SENIOR CYBERSECURITY AUDITOR. 
+Find critical vulnerabilities in the following ${language} code: "${filename}".
 
 STRICT DETECTION RULES:
-1. SECRETS: Flag ANY hardcoded string that looks like a password, API key, or secret token.
-2. INJECTION: Flag 'eval()', 'exec()', 'Function()', or any unsanitized input used in DB queries or system commands.
-3. LOGIC: Flag weak cryptography or insecure random number generators.
-
-
+1. SECRETS: Flag any hardcoded passwords, tokens, or private keys.
+2. INJECTION: Flag 'eval()', 'exec()', or unsanitized user inputs in queries/commands.
+3. LOGIC: Flag weak crypto or insecure random generators.
 
 RESPONSE REQUIREMENTS:
 - You must return ONLY valid JSON.
+- For 'description' and 'impact', keep text to 1-2 concise lines maximum.
 - If no issues are found, return "findings": [].
-- For every finding, provide a production-ready 'fix' string.
 
 JSON STRUCTURE:
 {
@@ -46,7 +44,8 @@ JSON STRUCTURE:
       "line": number,
       "severity": "critical" | "high" | "medium" | "low",
       "type": "Vulnerability Category",
-      "description": "Short explanation of the risk",
+      "description": "Short 1-line technical reason why this is dangerous.",
+      "impact": "1-line consequence if exploited.",
       "fix": "Corrected code snippet",
       "confidence": number
     }
@@ -71,11 +70,10 @@ async function callGroq(prompt, config) {
       messages: [
         { 
           role: 'system', 
-          content: 'You are a ruthless security scanner. You only speak JSON. Your goal is to find risks that others miss.' 
+          content: 'You are a ruthless security scanner. You only speak JSON. Be concise and technical.' 
         },
         { role: 'user', content: prompt }
       ],
-      // Force JSON mode to prevent "filter is not a function" errors
       response_format: { type: 'json_object' },
       temperature: 0.0 // Zero temperature for consistent security results
     },
@@ -119,7 +117,7 @@ module.exports = {
           continue;
         }
         
-        // Final check to ensure findings exists as an array
+        // Final normalization: ensure findings is an array
         return {
           findings: Array.isArray(result?.findings) ? result.findings : [],
           provider,
