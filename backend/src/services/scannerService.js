@@ -36,10 +36,8 @@ function mergeFindings(patternFindings, llmFindings) {
   const aiResults = Array.isArray(llmFindings) ? llmFindings : [];
   const patternResults = Array.isArray(patternFindings) ? patternFindings : [];
 
-  // Start with AI findings as the Source of Truth
   const merged = [...aiResults];
 
-  // Helper to normalize types for comparison
   const getBaseType = (type) => {
     const t = type.toLowerCase();
     if (t.includes('execution') || t.includes('eval') || t.includes('rce') || t.includes('injection')) return 'code_exec';
@@ -50,13 +48,9 @@ function mergeFindings(patternFindings, llmFindings) {
 
   for (const pf of patternResults) {
     const pBase = getBaseType(pf.type);
-
-    // Check if any AI finding is already covering this exact issue
     const isDuplicate = aiResults.some(af => {
       const isLineMatch = Math.abs(af.line - pf.line) <= 2;
       const aBase = getBaseType(af.type);
-      
-      // It's a duplicate if it's on the same line AND same general category
       return isLineMatch && (aBase === pBase);
     });
 
@@ -69,8 +63,36 @@ function mergeFindings(patternFindings, llmFindings) {
     }
   }
 
-  // Final sort by line number for a professional report
   return merged.sort((a, b) => a.line - b.line);
+}
+
+/**
+ * 🛡️ HYBRID RISK SCORING ENGINE
+ * Calculates score based on actual unique findings to prevent AI hallucinations.
+ */
+function calculateHybridScore(findings, aiScore) {
+  if (!findings || findings.length === 0) return 0.0;
+
+  const severityWeights = { 
+    'CRITICAL': 2.5, 
+    'HIGH': 1.5, 
+    'MEDIUM': 0.7, 
+    'LOW': 0.2 
+  };
+
+  // 1. Calculate base score from findings
+  let baseScore = findings.reduce((total, f) => {
+    const weight = severityWeights[f.severity.toUpperCase()] || 0.5;
+    return total + weight;
+  }, 0);
+
+  // 2. Blend with AI Score (taking the highest of the two)
+  // This ensures if AI says 9.5 and our math says 7.0, we stay cautious.
+  // If AI says 0 but we found 4 Criticals, our math saves the report.
+  const finalScore = Math.max(baseScore, aiScore || 0);
+
+  // 3. Cap at 10.0 and round to 1 decimal place
+  return Math.min(10, parseFloat(finalScore.toFixed(1)));
 }
 
 module.exports = {
@@ -88,16 +110,16 @@ module.exports = {
       
       const aiFindings = llmResult?.findings || [];
       
-      // 2. SMART MERGE (Eliminates the "7 instead of 4" bug)
-      const findings = mergeFindings(patternFindings, aiFindings).map(f => ({
+      // 2. SMART MERGE
+      const rawFindings = mergeFindings(patternFindings, aiFindings);
+      const findings = rawFindings.map(f => ({
         ...f,
         filename: f.filename || filename,
-        type: f.type.toUpperCase() // Clean display
+        type: f.type.toUpperCase()
       }));
 
-      // 3. Risk Score Calibration
-      // We take the AI's risk score but cap it if no findings exist
-      const riskScore = findings.length === 0 ? 0 : (llmResult?.riskScore || 0);
+      // 3. HYBRID RISK CALIBRATION (The Upgrade)
+      const riskScore = calculateHybridScore(findings, llmResult?.riskScore);
 
       const scan = {
         id: scanId,
