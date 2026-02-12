@@ -28,14 +28,28 @@ async function saveScan(scan) {
   }
 }
 
+/**
+ * UPGRADED: Smart De-duplication Logic
+ * Prevents double-counting by checking for overlaps in a 3-line window (+/- 1).
+ */
 function mergeFindings(patternFindings, llmFindings) {
   const safeLLM = Array.isArray(llmFindings) ? llmFindings : [];
   const safePattern = Array.isArray(patternFindings) ? patternFindings : [];
+
+  // 1. We treat AI results as the master "Source of Truth"
   const merged = [...safeLLM];
-  const seenLines = new Set(safeLLM.map(f => f.line));
   
+  // 2. Create a "Fuzzy Buffer" set of lines already claimed by the AI
+  const coveredLines = new Set();
+  safeLLM.forEach(f => {
+    coveredLines.add(f.line);
+    coveredLines.add(f.line - 1); // Buffer before
+    coveredLines.add(f.line + 1); // Buffer after
+  });
+  
+  // 3. Only add pattern findings if they are in a completely different area
   for (const pf of safePattern) {
-    if (!seenLines.has(pf.line)) {
+    if (!coveredLines.has(pf.line)) {
       merged.push({
         ...pf,
         issue: pf.issue || pf.description || "Potential security compromise.",
@@ -55,14 +69,16 @@ module.exports = {
     try {
       if (!code) throw new Error("Empty code provided");
 
+      // A. Pattern Engine (The Guard)
       const patternFindings = quickPatternScan(code, language) || [];
       
-      // ✅ UPGRADE: Capture the full result (including riskScore)
+      // B. AI Engine (The Brain)
       const llmResult = await LLMService.analyzeCode(code, filename, language);
       
       const aiFindings = Array.isArray(llmResult?.findings) ? llmResult.findings : [];
-      const riskScore = llmResult?.riskScore || 0; // Capture the 0-10 score
+      const riskScore = llmResult?.riskScore || 0;
 
+      // C. Perform the Smart Merge to remove duplicates
       const rawFindings = mergeFindings(patternFindings, aiFindings);
       const findings = rawFindings.map(f => ({ ...f, filename: f.filename || filename }));
 
@@ -74,7 +90,7 @@ module.exports = {
         language,
         codeHash: hashData(code),
         findings,
-        riskScore, // ✅ Store the score in the final scan object
+        riskScore, 
         timestamp: new Date(),
         scanDuration: Date.now() - startTime,
         status: "completed"
@@ -82,8 +98,8 @@ module.exports = {
 
       await saveScan(scan);
       
-      logger.info(`✅ Scan finished for ${filename}: ${findings.length} findings. Score: ${riskScore}`);
-      return scan; // Returns the full object for the controller to use
+      logger.info(`✅ Scan finished for ${filename}: ${findings.length} UNIQUE findings. Score: ${riskScore}`);
+      return scan; 
 
     } catch (error) {
       logger.error(`🚨 Scan fatal error: ${error.message}`);
