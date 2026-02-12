@@ -3,7 +3,7 @@ const { getPrimaryProvider, getProviderConfig } = require('../config/llm');
 const logger = require('../utils/logger');
 
 // =====================================================
-// HELPERS (Private to this module)
+// HELPERS
 // =====================================================
 
 function isProviderAvailable(provider) {
@@ -13,30 +13,30 @@ function isProviderAvailable(provider) {
   if (provider === 'groq' && !process.env.GROQ_API_KEY) return false;
   if (provider === 'openai' && !process.env.OPENAI_API_KEY) return false;
   
-  // Ollama is disabled by default in production
   if (provider === 'ollama') return false; 
   
   return true;
 }
 
 /**
- * UPGRADED: "Enterprise Minimalist" Prompt
- * Forces a 0-10 Risk Score and scannable 1-line findings.
+ * 🎯 THE SYNCED PROMPT
+ * Forces the AI to use a strict naming convention that matches patterns.js
  */
 function buildPrompt(code, filename, language) {
-  return `ACT AS A SENIOR CYBERSECURITY AUDITOR. 
-Audit the following ${language} code in "${filename}" for critical vulnerabilities.
+  return `ACT AS A SENIOR SECURITY AUDITOR. 
+Audit this ${language} code for critical vulnerabilities.
 
-STRICT DETECTION RULES:
-1. SECRETS: Flag hardcoded passwords, API keys, or private tokens.
-2. INJECTION: Flag 'eval()', 'exec()', or unsanitized user inputs in queries/system commands.
-3. LOGIC: Flag weak crypto, insecure random generators, or broken access control.
+STRICT TAXONOMY (You must use these exact strings for "type"):
+1. "RCE": For eval, exec, code injection, or command execution.
+2. "SQL_INJECTION": For unsanitized database queries.
+3. "SECRET": For hardcoded passwords, tokens, or keys.
+4. "LOGIC": For weak crypto or broken access control.
 
 RESPONSE REQUIREMENTS:
-- You must return ONLY valid JSON.
-- Provide a global "riskScore" from 0.0 to 10.0 for the entire file based on severity.
-- For each finding, provide exactly one concise sentence for "issue" and "fix_instruction".
-- If no issues are found, return "findings": [] and "riskScore": 0.0.
+- Return ONLY valid JSON.
+- Global "riskScore" (0.0 - 10.0).
+- "findings": An array of objects.
+- Keep "issue" and "fix_instruction" to exactly one technical sentence.
 
 JSON STRUCTURE:
 {
@@ -45,10 +45,9 @@ JSON STRUCTURE:
     {
       "line": number,
       "severity": "critical" | "high" | "medium",
-      "type": "Vulnerability Name",
-      "issue": "1-sentence technical risk description.",
-      "fix_instruction": "1-sentence fix action.",
-      "confidence": number
+      "type": "RCE" | "SQL_INJECTION" | "SECRET" | "LOGIC",
+      "issue": "string",
+      "fix_instruction": "string"
     }
   ]
 }
@@ -60,7 +59,7 @@ ${code}
 }
 
 // =====================================================
-// PROVIDER CALLS (Direct Functions)
+// PROVIDER CALLS
 // =====================================================
 
 async function callGroq(prompt, config) {
@@ -71,19 +70,19 @@ async function callGroq(prompt, config) {
       messages: [
         { 
           role: 'system', 
-          content: 'You are a ruthless security scanner. You only speak JSON. Be extremely concise and technical.' 
+          content: 'You are a technical security JSON generator. No prose. No conversational text. Use the provided taxonomy.' 
         },
         { role: 'user', content: prompt }
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.0 // Zero temperature for consistent security results
+      temperature: 0.0 // Crucial for consistency
     },
     {
       headers: {
         'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
         'Content-Type': 'application/json'
       },
-      timeout: config.timeout || 15000
+      timeout: 15000
     }
   );
   
@@ -91,7 +90,7 @@ async function callGroq(prompt, config) {
   try {
     return JSON.parse(content);
   } catch (e) {
-    logger.error("AI returned invalid JSON: " + content);
+    logger.error("AI returned invalid JSON");
     throw new Error("AI JSON parsing failed");
   }
 }
@@ -109,16 +108,15 @@ module.exports = {
         if (!isProviderAvailable(provider)) continue;
         
         const config = getProviderConfig(provider);
-        logger.info(`🤖 LLM Security Audit: ${provider} analyzing ${filename}`);
+        logger.info(`🤖 LLM Audit: ${provider} analyzing ${filename}`);
 
         let result;
         if (provider === 'groq') {
           result = await callGroq(buildPrompt(code, filename, language), config);
         } else {
-          continue;
+          continue; 
         }
         
-        // Final normalization: ensure findings is an array and score exists
         return {
           riskScore: result?.riskScore || 0.0,
           findings: Array.isArray(result?.findings) ? result.findings : [],
@@ -132,7 +130,6 @@ module.exports = {
       }
     }
     
-    logger.warn("⚠️ All LLM providers failed. Returning safe empty state.");
-    return { findings: [], riskScore: 0.0, summary: "LLM Scan Skipped", provider: "none" };
+    return { findings: [], riskScore: 0.0, provider: "none" };
   }
 };
