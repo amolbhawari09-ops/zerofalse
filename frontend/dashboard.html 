@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - ZeroFalse</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        zinc: {
+                            850: '#1f1f23',
+                            900: '#18181b',
+                            950: '#09090b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-zinc-950 text-white min-h-screen">
+    <!-- Navigation -->
+    <nav class="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <a href="index.html" class="flex items-center space-x-2">
+                    <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                    </div>
+                    <span class="text-xl font-bold">ZeroFalse</span>
+                </a>
+                
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="dashboard.html" class="text-white font-medium">Dashboard</a>
+                    <a href="#" class="text-zinc-400 hover:text-white transition-colors">Repositories</a>
+                    <a href="#" class="text-zinc-400 hover:text-white transition-colors">Scans</a>
+                    <a href="#" class="text-zinc-400 hover:text-white transition-colors">Settings</a>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <span id="user-name" class="text-zinc-400 text-sm hidden sm:block">Loading...</span>
+                    <button onclick="window.signOut()" class="text-zinc-400 hover:text-white transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Welcome -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold mb-2">Welcome back, <span id="welcome-name">User</span> 👋</h1>
+            <p class="text-zinc-400">Here's your security overview</p>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-indigo-500/10 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="text-3xl font-bold mb-1" id="stat-prs">0</div>
+                <div class="text-zinc-400 text-sm">PRs Scanned</div>
+            </div>
+
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-rose-500/10 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="text-3xl font-bold mb-1" id="stat-vulns">0</div>
+                <div class="text-zinc-400 text-sm">Vulnerabilities Found</div>
+            </div>
+
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="text-3xl font-bold mb-1" id="stat-repos">0</div>
+                <div class="text-zinc-400 text-sm">Active Repositories</div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+            <h2 class="text-lg font-semibold mb-4">Recent Scans</h2>
+            <div id="recent-scans" class="space-y-3">
+                <p class="text-zinc-500 text-center py-8">No scans yet. Connect your first repository to get started.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script type="module">
+        import { signOut, protectRoute, authFetch } from './js/auth.js';
+        
+        // Make signOut available globally
+        window.signOut = signOut;
+        
+        // Protect this page
+        const isAuthenticated = await protectRoute();
+        if (!isAuthenticated) {
+            // protectRoute already redirected to auth.html
+            throw new Error('Not authenticated');
+        }
+        
+        // Load dashboard data
+        async function loadDashboard() {
+            try {
+                // Get user info
+                const userRes = await authFetch('/api/auth/me');
+                if (userRes && userRes.ok) {
+                    const userData = await userRes.json();
+                    const firstName = userData.user?.firstName || 'User';
+                    document.getElementById('welcome-name').textContent = firstName;
+                    document.getElementById('user-name').textContent = userData.user?.email || 'User';
+                }
+                
+                // Get stats
+                const statsRes = await authFetch('/api/dashboard/stats');
+                if (statsRes && statsRes.ok) {
+                    const data = await statsRes.json();
+                    document.getElementById('stat-prs').textContent = data.stats?.prs || 0;
+                    document.getElementById('stat-vulns').textContent = data.stats?.vulnerabilities || 0;
+                    document.getElementById('stat-repos').textContent = data.stats?.repositories || 0;
+                }
+                
+                // Get recent scans
+                const scansRes = await authFetch('/api/scan?limit=5');
+                if (scansRes && scansRes.ok) {
+                    const scansData = await scansRes.json();
+                    if (scansData.scans && scansData.scans.length > 0) {
+                        renderScans(scansData.scans);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load dashboard:', error);
+            }
+        }
+        
+        function renderScans(scans) {
+            const container = document.getElementById('recent-scans');
+            container.innerHTML = scans.map(scan => `
+                <div class="flex items-center justify-between p-4 bg-zinc-800/50 rounded-lg border border-zinc-700/50">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 ${scan.riskScore > 7 ? 'bg-rose-500/10' : scan.riskScore > 3 ? 'bg-amber-500/10' : 'bg-emerald-500/10'} rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 ${scan.riskScore > 7 ? 'text-rose-400' : scan.riskScore > 3 ? 'text-amber-400' : 'text-emerald-400'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="font-medium text-sm">${scan.repo || 'Unknown Repo'}</div>
+                            <div class="text-xs text-zinc-400">${scan.filename || 'Unknown file'} • ${new Date(scan.timestamp).toLocaleDateString()}</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm font-medium ${scan.riskScore > 7 ? 'text-rose-400' : scan.riskScore > 3 ? 'text-amber-400' : 'text-emerald-400'}">
+                            Risk: ${scan.riskScore}/10
+                        </div>
+                        <div class="text-xs text-zinc-500">${scan.findings?.length || 0} issues</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Load data
+        loadDashboard();
+    </script>
+</body>
+</html>
