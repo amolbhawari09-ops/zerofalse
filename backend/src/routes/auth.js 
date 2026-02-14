@@ -1,0 +1,19 @@
+/**
+ * Auth Routes
+ */
+
+const express = require('express');
+const router = express.Router();
+const { syncUser, getProfile, checkAuth } = require('../controllers/authController');
+const { clerkAuth } = require('../middleware/clerkAuth');
+
+// POST /api/auth/sync - Sync user from Clerk (public, but validates token)
+router.post('/sync', clerkAuth, syncUser);
+
+// GET /api/auth/me - Get current user profile (protected)
+router.get('/me', clerkAuth, getProfile);
+
+// GET /api/auth/check - Check authentication status (protected)
+router.get('/check', clerkAuth, checkAuth);
+
+module.exports = router;
