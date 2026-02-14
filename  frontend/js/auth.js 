@@ -1,0 +1,173 @@
+/**
+ * ZeroFalse Authentication Module
+ * Uses Clerk Hosted Pages for authentication
+ */
+
+// Configuration
+const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const CLERK_DOMAIN = import.meta.env.VITE_CLERK_DOMAIN;
+const API_URL = import.meta.env.VITE_API_URL || 'https://your-backend.vercel.app';
+
+/**
+ * Redirect to Clerk Hosted Sign-In page
+ */
+function signIn() {
+    const currentUrl = window.location.href;
+    const redirectUrl = currentUrl.includes('auth.html') 
+        ? window.location.origin + '/dashboard.html'
+        : window.location.origin + '/dashboard.html';
+    
+    window.location.href = `${CLERK_DOMAIN}/sign-in?redirect_url=${encodeURIComponent(redirectUrl)}`;
+}
+
+/**
+ * Redirect to Clerk Hosted Sign-Up page
+ */
+function signUp() {
+    const redirectUrl = window.location.origin + '/dashboard.html';
+    window.location.href = `${CLERK_DOMAIN}/sign-up?redirect_url=${encodeURIComponent(redirectUrl)}`;
+}
+
+/**
+ * Sign out - redirect to Clerk sign out
+ */
+function signOut() {
+    const redirectUrl = window.location.origin + '/index.html';
+    window.location.href = `${CLERK_DOMAIN}/sign-out?redirect_url=${encodeURIComponent(redirectUrl)}`;
+}
+
+/**
+ * Get JWT token from Clerk session
+ * This is called by backend to verify authentication
+ */
+async function getToken() {
+    try {
+        // For hosted pages, token is in URL after redirect
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('__clerk_ticket');
+        
+        // Also check for session cookie
+        const cookies = document.cookie.split(';');
+        const sessionCookie = cookies.find(c => c.trim().startsWith('__session='));
+        
+        if (sessionCookie) {
+            return sessionCookie.split('=')[1];
+        }
+        
+        return null;
+    } catch (e) {
+        console.error('Error getting token:', e);
+        return null;
+    }
+}
+
+/**
+ * Check if user is authenticated by calling backend
+ */
+async function checkAuth() {
+    try {
+        const response = await fetch(`${API_URL}/api/auth/check`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            return data.authenticated === true;
+        }
+        return false;
+    } catch (error) {
+        console.error('Auth check failed:', error);
+        return false;
+    }
+}
+
+/**
+ * Make authenticated API request
+ */
+async function authFetch(endpoint, options = {}) {
+    const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
+    
+    const response = await fetch(url, {
+        ...options,
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
+    });
+    
+    // If unauthorized, redirect to auth page
+    if (response.status === 401) {
+        window.location.href = '/auth.html';
+        return null;
+    }
+    
+    return response;
+}
+
+/**
+ * Update navigation based on auth state
+ */
+async function updateNavigation() {
+    const navAuth = document.getElementById('nav-auth');
+    const navUser = document.getElementById('nav-user');
+    const userNameEl = document.getElementById('nav-user-name');
+    
+    if (!navAuth || !navUser) return;
+    
+    const isAuthenticated = await checkAuth();
+    
+    if (isAuthenticated) {
+        navAuth.classList.add('hidden');
+        navUser.classList.remove('hidden');
+        
+        // Try to get user info from backend
+        try {
+            const response = await authFetch('/api/auth/me');
+            if (response && response.ok) {
+                const data = await response.json();
+                if (userNameEl && data.user) {
+                    userNameEl.textContent = data.user.firstName || data.user.email || 'User';
+                }
+            }
+        } catch (e) {
+            console.error('Failed to get user info');
+        }
+    } else {
+        navAuth.classList.remove('hidden');
+        navUser.classList.add('hidden');
+    }
+}
+
+/**
+ * Protect route - redirect to auth if not logged in
+ */
+async function protectRoute() {
+    const isAuthenticated = await checkAuth();
+    if (!isAuthenticated) {
+        window.location.href = '/auth.html';
+        return false;
+    }
+    return true;
+}
+
+// Export functions
+export {
+    signIn,
+    signUp,
+    signOut,
+    getToken,
+    checkAuth,
+    authFetch,
+    updateNavigation,
+    protectRoute
+};
+
+// Auto-update navigation on page load
+if (typeof window !== 'undefined') {
+    window.addEventListener('DOMContentLoaded', updateNavigation);
+}
