@@ -7,7 +7,9 @@ const feedbackRoutes = require('./feedback');
 const webhookRoutes = require('./webhook');
 
 // --- New Imports ---
+// IMPORTANT: You must have created src/routes/auth.js for this to work
 const authRoutes = require('./auth');
+// IMPORTANT: You must have created src/middleware/clerkAuth.js for this to work
 const { clerkAuth } = require('../middleware/clerkAuth');
 
 // --- Routes ---
@@ -53,7 +55,6 @@ router.get('/dashboard/stats', clerkAuth, async (req, res) => {
             }
         });
     } catch (error) {
-        // Changed 'logger' to 'console' to ensure it runs if logger isn't imported here
         console.error('Dashboard stats error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
