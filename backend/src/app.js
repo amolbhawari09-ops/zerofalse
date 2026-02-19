@@ -42,14 +42,7 @@ app.use((req, res) => {
 });
 
 // LOCAL DEVELOPMENT ONLY
-// This block only runs when NOT on Vercel
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    logger.info(`🛡️ ZeroFalse server running on port ${PORT}`);
-    logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  });
-}
+// This block only runs when NOT on Vercel}
 
 // VERCEL SERVERLESS EXPORT
 // This is required for Vercel deployment
