@@ -1,51 +1,418 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zerofalse — The Intent Firewall for AI-Native Software</title>
-  <meta name="description" content="AI agents write code that looks correct. 45% has dangerous vulnerabilities. Zerofalse finds the 10% that kills you in production.">
-  
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  
-  <!-- Styles -->
-  <link rel="stylesheet" href="../shared/css/variables.css">
-  <link rel="stylesheet" href="css/main.css">
-  <link rel="stylesheet" href="css/components/navbar.css">
-  <link rel="stylesheet" href="css/components/hero.css">
-  <link rel="stylesheet" href="css/components/problem.css">
-  <link rel="stylesheet" href="css/components/features.css">
-  <link rel="stylesheet" href="css/components/how-it-works.css">
-  <link rel="stylesheet" href="css/components/pricing.css">
-  <link rel="stylesheet" href="css/components/faq.css">
-  <link rel="stylesheet" href="css/components/footer.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zerofalse - The Intent Firewall for AI-Native Software</title>
+    <meta name="description" content="AI agents write code that looks correct. 45% has dangerous vulnerabilities. Zerofalse finds the 10% that kills you in production.">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/landing.css">
 </head>
 <body>
-  <!-- Navigation -->
-  <div id="navbar-container"></div>
-  
-  <!-- Main Content -->
-  <main>
-    <div id="hero-container"></div>
-    <div id="problem-container"></div>
-    <div id="features-container"></div>
-    <div id="how-it-works-container"></div>
-    <div id="pricing-container"></div>
-    <div id="faq-container"></div>
-  </main>
-  
-  <!-- Footer -->
-  <div id="footer-container"></div>
-  
-  <!-- Scripts -->
-  <script src="js/utils/animations.js"></script>
-  <script src="js/components/navbar.js"></script>
-  <script src="js/components/hero.js"></script>
-  <script src="js/components/pricing.js"></script>
-  <script src="js/components/smooth-scroll.js"></script>
-  <script src="js/main.js"></script>
-</body>
-</html>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="/" class="logo">
+                <span class="logo-icon">🔷</span>
+                <span class="logo-text">ZEROFALSE</span>
+            </a>
+            
+            <div class="nav-links">
+                <a href="#problem" class="nav-link">Problem</a>
+                <a href="#how-it-works" class="nav-link">How it Works</a>
+                <a href="#pricing" class="nav-link">Pricing</a>
+                <a href="https://docs.zerofalse.vercel.app" class="nav-link">Docs</a>
+            </div>
+            
+            <div class="nav-actions">
+                <a href="dashboard.html" class="btn btn-ghost">Dashboard</a>
+                <a href="#install" class="btn btn-primary">Get Started</a>
+            </div>
+            
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+        
+        <!-- Mobile Menu -->
+        <div class="mobile-menu" id="mobileMenu">
+            <a href="#problem" class="mobile-link">Problem</a>
+            <a href="#how-it-works" class="mobile-link">How it Works</a>
+            <a href="#pricing" class="mobile-link">Pricing</a>
+            <a href="dashboard.html" class="mobile-link">Dashboard</a>
+            <a href="#install" class="btn btn-primary mobile-cta">Get Started</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-badge">
+                <span class="badge-text">Built for the Post-Coding Era</span>
+            </div>
+            
+            <h1 class="hero-title">
+                The Intent Firewall for<br>
+                <span class="gradient-text">AI-Native Software</span>
+            </h1>
+            
+            <p class="hero-subtitle">
+                AI agents write code that looks correct. <strong>45% of it has dangerous vulnerabilities.</strong><br>
+                Zerofalse finds the 10% that looks right but kills you in production.
+            </p>
+            
+            <div class="hero-cta">
+                <a href="#install" class="btn btn-primary btn-lg">
+                    <span>🚀</span> Start Free — Install GitHub App
+                </a>
+                <a href="#demo" class="btn btn-ghost btn-lg">
+                    <span>📊</span> See Live Demo
+                </a>
+            </div>
+            
+            <div class="hero-trust">
+                <p class="trust-text">Trusted by teams at</p>
+                <div class="trust-logos">
+                    <span class="trust-logo">Vercel</span>
+                    <span class="trust-logo">Linear</span>
+                    <span class="trust-logo">Stripe</span>
+                    <span class="trust-logo">Notion</span>
+                </div>
+            </div>
+            
+            <!-- Code Preview -->
+            <div class="code-preview">
+                <div class="code-header">
+                    <div class="code-dots">
+                        <span class="dot red"></span>
+                        <span class="dot yellow"></span>
+                        <span class="dot green"></span>
+                    </div>
+                    <span class="code-title">⚠️ ZEROFALSE ALERT — "Looks Clean" Detection</span>
+                </div>
+                <div class="code-body">
+                    <div class="code-line">
+                        <span class="line-num">1</span>
+                        <span class="code-comment">// File: auth.js:42</span>
+                    </div>
+                    <div class="code-line">
+                        <span class="line-num">2</span>
+                        <span class="code-keyword">const</span> <span class="code-variable">query</span> <span class="code-operator">=</span> <span class="code-string">`SELECT * FROM users WHERE id = ${userId}`</span><span class="code-punctuation">;</span>
+                    </div>
+                    <div class="code-line highlight-error">
+                        <span class="line-num">3</span>
+                        <span class="code-comment">// ❌ Why it looks clean: Modern template literal syntax</span>
+                    </div>
+                    <div class="code-line highlight-error">
+                        <span class="line-num">4</span>
+                        <span class="code-comment">// ❌ Why it's dangerous: SQL injection — passed code review</span>
+                    </div>
+                    <div class="code-line highlight-success">
+                        <span class="line-num">5</span>
+                        <span class="code-comment">// ✅ Zerofalse caught this in 0.3s before merge</span>
+                    </div>
+                </div>
+            </div>
+            
+            <p class="hero-note">No credit card required • Free for 14 days • Setup in 2 minutes</p>
+        </div>
+    </section>
+
+    <!-- Problem Section -->
+    <section class="problem" id="problem">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">THE PROBLEM</span>
+                <h2 class="section-title">AI Codes. Humans Can't Verify.</h2>
+                <p class="section-subtitle">We're in Stage 3. Security review is breaking down.</p>
+            </div>
+            
+            <div class="stages-grid">
+                <div class="stage-card">
+                    <div class="stage-year">2024</div>
+                    <h3 class="stage-title">Stage 1: AI Assists</h3>
+                    <p class="stage-desc">AI helps humans write code</p>
+                    <div class="stage-status status-good">Security: ✅ Works</div>
+                </div>
+                
+                <div class="stage-card">
+                    <div class="stage-year">2025</div>
+                    <h3 class="stage-title">Stage 2: AI Writes</h3>
+                    <p class="stage-desc">AI generates complete code</p>
+                    <div class="stage-status status-warning">Security: ⚠️ Breaks</div>
+                </div>
+                
+                <div class="stage-card active">
+                    <div class="stage-year">2026</div>
+                    <h3 class="stage-title">Stage 3: AI Agents</h3>
+                    <p class="stage-desc">AI agents work autonomously</p>
+                    <div class="stage-status status-danger">Security: 🔴 Fails</div>
+                </div>
+            </div>
+            
+            <div class="problem-stats">
+                <div class="stat-item">
+                    <div class="stat-number">45%</div>
+                    <div class="stat-label">of AI code has security flaws</div>
+                    <div class="stat-source">Veracode 2025</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">1 in 5</div>
+                    <div class="stat-label">orgs breached by AI code</div>
+                    <div class="stat-source">Aikido 2026</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">2.74x</div>
+                    <div class="stat-label">more vulnerabilities vs human code</div>
+                    <div class="stat-source">Security Research</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">HOW IT WORKS</span>
+                <h2 class="section-title">The Only Security Agent That Joins Your AI Team</h2>
+            </div>
+            
+            <!-- Feature 1 -->
+            <div class="feature-block">
+                <div class="feature-content">
+                    <div class="feature-number">01</div>
+                    <h3 class="feature-title">Real-Time Guardrails</h3>
+                    <p class="feature-desc">
+                        Zerofalse joins as a security teammate in VS Code, Cursor, and Claude Code. 
+                        Blocks vulnerabilities <strong>BEFORE</strong> AI suggests them — not after.
+                    </p>
+                    <ul class="feature-list">
+                        <li>IDE extension for instant feedback</li>
+                        <li>MCP server for Claude Code integration</li>
+                        <li>Blocks dangerous patterns in milliseconds</li>
+                    </ul>
+                </div>
+                <div class="feature-visual">
+                    <div class="flow-diagram">
+                        <div class="flow-step">
+                            <span class="flow-icon">🤖</span>
+                            <span>AI Suggests</span>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step highlight">
+                            <span class="flow-icon">🛡️</span>
+                            <span>Zerofalse Checks</span>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step success">
+                            <span class="flow-icon">✅</span>
+                            <span>Safe / Blocked</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Feature 2 -->
+            <div class="feature-block reverse">
+                <div class="feature-content">
+                    <div class="feature-number">02</div>
+                    <h3 class="feature-title">"Looks Clean" Detection ⭐</h3>
+                    <p class="feature-desc">
+                        AI code looks 90% correct. That's the dangerous part. 
+                        We find the 10% that looks right but kills you in production.
+                    </p>
+                    <ul class="feature-list">
+                        <li>SQL injections that look parameterized</li>
+                        <li>Auth that looks solid but bypasses 2FA</li>
+                        <li>Dependencies that don't exist (hallucinations)</li>
+                    </ul>
+                </div>
+                <div class="feature-visual">
+                    <div class="comparison-box">
+                        <div class="comparison-item bad">
+                            <div class="comparison-label">Looks Clean</div>
+                            <code>const query = `SELECT * FROM users WHERE id = ${id}`</code>
+                            <span class="comparison-tag">❌ SQL Injection</span>
+                        </div>
+                        <div class="comparison-arrow">→</div>
+                        <div class="comparison-item good">
+                            <div class="comparison-label">Actually Safe</div>
+                            <code>db.query('SELECT * FROM users WHERE id = ?', [id])</code>
+                            <span class="comparison-tag">✅ Parameterized</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Feature 3 -->
+            <div class="feature-block">
+                <div class="feature-content">
+                    <div class="feature-number">03</div>
+                    <h3 class="feature-title">AI Model Fingerprinting</h3>
+                    <p class="feature-desc">
+                        Know which AI (GPT-5.3, Claude 4.6, Copilot) wrote your code 
+                        and what mistakes it typically makes.
+                    </p>
+                    <ul class="feature-list">
+                        <li>GPT-5.3: 75% secure, overcomplicates auth</li>
+                        <li>Claude 4.6: 90% secure, best with prompts</li>
+                        <li>Copilot: 70% secure, 40% higher secret leakage</li>
+                    </ul>
+                </div>
+                <div class="feature-visual">
+                    <div class="model-cards">
+                        <div class="model-card">
+                            <div class="model-name">GPT-5.3</div>
+                            <div class="model-score score-warning">75%</div>
+                            <div class="model-desc">Secure</div>
+                        </div>
+                        <div class="model-card best">
+                            <div class="model-name">Claude 4.6</div>
+                            <div class="model-score score-good">90%</div>
+                            <div class="model-desc">Secure</div>
+                        </div>
+                        <div class="model-card">
+                            <div class="model-name">Copilot</div>
+                            <div class="model-score score-bad">70%</div>
+                            <div class="model-desc">Secure</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard Preview Section -->
+    <section class="dashboard-preview" id="demo">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">DASHBOARD</span>
+                <h2 class="section-title">Visibility Into AI Code Across Your Organization</h2>
+            </div>
+            
+            <div class="preview-frame">
+                <div class="preview-header">
+                    <div class="preview-tabs">
+                        <span class="preview-tab active">Overview</span>
+                        <span class="preview-tab">Live Sessions</span>
+                        <span class="preview-tab">Provenance</span>
+                        <span class="preview-tab">Threats</span>
+                    </div>
+                </div>
+                <div class="preview-content">
+                    <div class="preview-metrics">
+                        <div class="preview-metric">
+                            <div class="preview-label">Security Score</div>
+                            <div class="preview-value">94/100</div>
+                            <div class="preview-trend up">↑ +3pts</div>
+                        </div>
+                        <div class="preview-metric">
+                            <div class="preview-label">Code Today</div>
+                            <div class="preview-value">2,847</div>
+                            <div class="preview-trend up">↑ 23%</div>
+                        </div>
+                        <div class="preview-metric">
+                            <div class="preview-label">Active Sessions</div>
+                            <div class="preview-value">2</div>
+                            <div class="preview-status">
+                                <span class="status-dot green"></span> Healthy
+                            </div>
+                        </div>
+                    </div>
+                    <div class="preview-chart">
+                        <div class="chart-placeholder">
+                            <div class="chart-bars">
+                                <div class="bar" style="height: 40%"></div>
+                                <div class="bar" style="height: 60%"></div>
+                                <div class="bar" style="height: 80%"></div>
+                                <div class="bar" style="height: 70%"></div>
+                                <div class="bar" style="height: 90%"></div>
+                                <div class="bar" style="height: 95%"></div>
+                                <div class="bar active" style="height: 94%"></div>
+                            </div>
+                            <div class="chart-labels">
+                                <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="preview-cta">
+                <a href="dashboard.html" class="btn btn-primary">Explore Dashboard Features</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Social Proof Section -->
+    <section class="social-proof">
+        <div class="container">
+            <div class="testimonial">
+                <blockquote>
+                    "Zerofalse caught an SQL injection that looked exactly like a parameterized query. 
+                    Our senior engineer missed it. Zerofalse didn't."
+                </blockquote>
+                <cite>— CTO, Series A Startup</cite>
+            </div>
+            
+            <div class="impact-stats">
+                <div class="impact-stat">
+                    <div class="impact-number">127</div>
+                    <div class="impact-label">Threats Blocked<br><small>this month</small></div>
+                </div>
+                <div class="impact-stat">
+                    <div class="impact-number">34</div>
+                    <div class="impact-label">"Looks Clean"<br><small>caught</small></div>
+                </div>
+                <div class="impact-stat">
+                    <div class="impact-number">23</div>
+                    <div class="impact-label">Hallucinated Packages<br><small>blocked</small></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="pricing" id="pricing">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">PRICING</span>
+                <h2 class="section-title">Simple Pricing</h2>
+                <p class="section-subtitle">Start free. Scale as your AI coding scales.</p>
+            </div>
+            
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3 class="pricing-name">Starter</h3>
+                        <div class="pricing-price">$49<span>/mo</span></div>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>Up to 5 developers</li>
+                        <li>50 scans/day</li>
+                        <li>Basic vulnerability detection</li>
+                        <li>Community support</li>
+                    </ul>
+                    <a href="#install" class="btn btn-secondary btn-block">Start Free</a>
+                </div>
+                
+                <div class="pricing-card popular">
+                    <div class="popular-badge">Most Popular</div>
+                    <div class="pricing-header">
+                        <h3 class="pricing-name">Pro</h3>
+                        <div class="pricing-price">$199<span>/mo</span></div>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>Up to 20 developers</li>
+                        <li>Unlimited scans</li>
