@@ -1,0 +1,84 @@
+<section class="hero" id="hero">
+  <div class="container">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="badge badge-success">🚀 Built for YC S25</span>
+      </div>
+      
+      <h1 class="hero-title">
+        The Intent Firewall for<br>
+        <span class="gradient-text">AI-Native Software</span>
+      </h1>
+      
+      <p class="hero-description">
+        AI agents write code that <strong>looks correct</strong>. 
+        <span class="highlight">45% has dangerous vulnerabilities.</span>
+        Zerofalse finds the 10% that kills you in production.
+      </p>
+      
+      <div class="hero-cta">
+        <a href="https://github.com/apps/zerofalse/installations/new" class="btn btn-primary btn-lg" target="_blank">
+          <span>🚀</span>
+          Start Free — Install GitHub App
+        </a>
+        <a href="#how-it-works" class="btn btn-secondary btn-lg">
+          <span>📊</span>
+          See Live Demo
+        </a>
+      </div>
+      
+      <div class="hero-social-proof">
+        <p class="social-proof-text">Trusted by teams at</p>
+        <div class="social-proof-logos">
+          <span class="logo-placeholder">Stripe</span>
+          <span class="logo-placeholder">Vercel</span>
+          <span class="logo-placeholder">Linear</span>
+          <span class="logo-placeholder">Notion</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="hero-demo">
+      <div class="demo-window">
+        <div class="demo-header">
+          <div class="demo-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <span class="demo-title">⚠️ ZEROFALSE ALERT — "Looks Clean" Detection</span>
+        </div>
+        <div class="demo-content">
+          <div class="demo-file">File: auth.js:42</div>
+          <pre class="demo-code"><code><span class="code-danger">const query = `SELECT * FROM users WHERE id = ${userId}`;</span></code></pre>
+          <div class="demo-analysis">
+            <div class="analysis-item danger">
+              <span>❌</span>
+              <div>
+                <strong>Why it looks clean:</strong> Modern template literal syntax
+              </div>
+            </div>
+            <div class="analysis-item danger">
+              <span>❌</span>
+              <div>
+                <strong>Why it's dangerous:</strong> SQL injection — passed code review
+              </div>
+            </div>
+            <div class="analysis-item success">
+              <span>✅</span>
+              <div>
+                <strong>Zerofalse caught this in 0.3s before merge</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="hero-risk-reversal">
+      <span>✓</span> No credit card required
+      <span>✓</span> Free for 14 days
+      <span>✓</span> Setup in 2 minutes
+    </div>
+  </div>
+</section>
