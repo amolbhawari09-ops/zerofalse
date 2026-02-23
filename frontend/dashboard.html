@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Zerofalse</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body class="dashboard-body">
+    <!-- Dashboard Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="/" class="logo">
+                <span class="logo-icon">🔷</span>
+                <span class="logo-text">ZEROFALSE</span>
+            </a>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <a href="#overview" class="nav-item active" onclick="showTab('overview', this)">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Overview</span>
+            </a>
+            <a href="#sessions" class="nav-item" onclick="showTab('sessions', this)">
+                <span class="nav-icon">⚡</span>
+                <span class="nav-label">Live Sessions</span>
+            </a>
+            <a href="#provenance" class="nav-item" onclick="showTab('provenance', this)">
+                <span class="nav-icon">🧬</span>
+                <span class="nav-label">AI Provenance</span>
+            </a>
+            <a href="#threats" class="nav-item" onclick="showTab('threats', this)">
+                <span class="nav-icon">🛡️</span>
+                <span class="nav-label">Blocked Threats</span>
+            </a>
+            <a href="#connect" class="nav-item" onclick="showTab('connect', this)">
+                <span class="nav-icon">🔌</span>
+                <span class="nav-label">Connect</span>
+            </a>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <div class="user-menu">
+                <div class="user-avatar">D</div>
+                <div class="user-info">
+                    <div class="user-name">Developer</div>
+                    <div class="user-plan">Starter Plan</div>
+                </div>
+            </div>
+            <a href="#" class="logout-btn" onclick="logout()">Logout</a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Top Bar -->
+        <header class="top-bar">
+            <h1 class="page-title">Dashboard</h1>
+            <div class="top-actions">
+                <button class="btn btn-ghost btn-sm" onclick="refreshData()">
+                    <span>🔄</span> Refresh
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="exportData()">
+                    <span>📥</span> Export
+                </button>
+            </div>
+        </header>
+
+        <!-- Tab: Overview -->
+        <div class="tab-content active" id="overview">
+            <!-- Metrics Grid -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-label">Security Score</span>
+                        <span class="metric-trend up">↑ +3pts</span>
+                    </div>
+                    <div class="metric-value">94<span class="metric-max">/100</span></div>
+                    <div class="metric-footer">vs last week</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-label">Code Generated Today</span>
+                        <span class="metric-trend up">↑ 23%</span>
+                    </div>
+                    <div class="metric-value">2,847</div>
+                    <div class="metric-footer">lines</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-header">
+                        <span class="metric-label">Threats Blocked Today</span>
+                        <span class="metric-trend down">↓ 40%</span>
+                    </div>
+                    <div class="metric-value">12</div>
+                    <div class="metric-footer">blocked</div>
+                </div>
+                
+                <div class="metric-card health">
+                    <div class="metric-header">
+                        <span class="metric-label">System Health</span>
+                        <span class="status-badge healthy">Healthy</span>
+                    </div>
+                    <div class="metric-value">🟢</div>
+                    <div class="metric-footer">All systems operational</div>
+                </div>
+            </div>
+
+            <!-- Active Sessions & Recent Alerts -->
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3>Active AI Sessions</h3>
+                        <span class="badge">2 Active</span>
+                    </div>
+                    <div class="session-list">
+                        <div class="session-item">
+                            <div class="session-icon green">🟢</div>
+                            <div class="session-info">
+                                <div class="session-name">Claude Code</div>
+                                <div class="session-meta">VS Code • 45 min • 234 lines</div>
+                                <div class="session-stats">
+                                    <span class="stat warning">2 warnings</span>
+                                </div>
+                            </div>
+                            <div class="session-actions">
+                                <button class="btn btn-ghost btn-xs">View</button>
+                                <button class="btn btn-ghost btn-xs">Pause</button>
+                            </div>
+                        </div>
+                        
+                        <div class="session-item">
+                            <div class="session-icon yellow">🟡</div>
+                            <div class="session-info">
+                                <div class="session-name">Cursor IDE</div>
+                                <div class="session-meta">macOS • 12 min • 89 lines</div>
+                                <div class="session-stats">
+                                    <span class="stat critical">1 critical</span>
+                                </div>
+                            </div>
+                            <div class="session-actions">
+                                <button class="btn btn-ghost btn-xs">View</button>
+                                <button class="btn btn-ghost btn-xs">Pause</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn btn-secondary btn-sm">
+                            <span>+</span> Connect New Agent
+                        </button>
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3>Recent Alerts</h3>
+                        <a href="#threats" class="link" onclick="showTab('threats', document.querySelector('[href=\'#threats\']'))">View All</a>
+                    </div>
+                    <div class="alert-list">
+                        <div class="alert-item critical">
+                            <div class="alert-icon">⚠️</div>
+                            <div class="alert-content">
+                                <div class="alert-title">"Looks Clean" Alert</div>
+                                <div class="alert-desc">SQL injection in auth.js (GPT-5.3)</div>
+                                <div class="alert-time">2 min ago</div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert-item warning">
+                            <div class="alert-icon">🛡️</div>
+                            <div class="alert-content">
+                                <div class="alert-title">Hallucinated Package Blocked</div>
+                                <div class="alert-desc">fake-package-validator (Copilot)</div>
+                                <div class="alert-time">15 min ago</div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert-item success">
+                            <div class="alert-icon">✅</div>
+                            <div class="alert-content">
+                                <div class="alert-title">Model Fingerprint Updated</div>
+                                <div class="alert-desc">Claude 4.6 patterns refreshed</div>
+                                <div class="alert-time">1 hour ago</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Trend Chart -->
+            <div class="dashboard-card full-width">
+                <div class="card-header">
+                    <h3>Security Trend (Last 7 Days)</h3>
+                    <div class="chart-legend">
+                        <span class="legend-item"><span class="dot blue"></span> Security Score</span>
+                        <span class="legend-item"><span class="dot purple"></span> AI Code Volume</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-placeholder">
+                        <div class="chart-line">
+                            <svg viewBox="0 0 700 200" preserveAspectRatio="none">
+                                <path d="M0,150 Q100,120 200,100 T400,80 T600,40 T700,20" fill="none" stroke="#3B82F6" stroke-width="3"/>
+                                <path d="M0,180 Q100,160 200,140 T400,120 T600,100 T700,60" fill="none" stroke="#8B5CF6" stroke-width="3" stroke-dasharray="5,5"/>
+                            </svg>
+                        </div>
+                        <div class="chart-labels">
+                            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Live Sessions -->
+        <div class="tab-content" id="sessions">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h3>Live AI Coding Sessions</h3>
+                    <div class="header-actions">
+                        <button class="btn btn-ghost btn-sm">Auto-refresh: ON</button>
+                    </div>
+                </div>
+                <div class="session-table">
+                    <div class="table-header">
+                        <span>Session</span>
+                        <span>Duration</span>
+                        <span>Lines</span>
+                        <span>Model</span>
+                        <span>Score</span>
+                        <span>Status</span>
+                        <span>Actions</span>
+                    </div>
+                    <div class="table-row">
+                        <div class="cell">
+                            <div class="session-icon green">🟢</div>
+                            <div>
+                                <div class="cell-title">Claude Code</div>
+                                <div class="cell-subtitle">VS Code</div>
+                            </div>
+                        </div>
+                        <div class="cell">45 min</div>
+                        <div class="cell">234</div>
+                        <div class="cell">Claude 4.6</div>
+                        <div class="cell score-good">94%</div>
+                        <div class="cell"><span class="badge green">Active</span></div>
+                        <div class="cell">
+                            <button class="btn btn-ghost btn-xs">View</button>
+                            <button class="btn btn-ghost btn-xs">Pause</button>
+                        </div>
+                    </div>
+                    <div class="table-row">
+                        <div class="cell">
+                            <div class="session-icon yellow">🟡</div>
+                            <div>
+                                <div class="cell-title">Cursor IDE</div>
+                                <div class="cell-subtitle">macOS</div>
+                            </div>
+                        </div>
+                        <div class="cell">12 min</div>
+                        <div class="cell">89</div>
+                        <div class="cell">GPT-5.3</div>
+                        <div class="cell score-warning">76%</div>
+                        <div class="cell"><span class="badge yellow">Needs Review</span></div>
+                        <div class="cell">
+                            <button class="btn btn-ghost btn-xs">View</button>
+                            <button class="btn btn-primary btn-xs">Review</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: AI Provenance -->
+        <div class="tab-content" id="provenance">
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3>Codebase Composition</h3>
+                    </div>
+                    <div class="composition-chart">
+                        <div class="donut-chart">
+                            <div class="donut-center">
+                                <div class="donut-value">73%</div>
+                                <div class="donut-label">AI-Generated</div>
+                            </div>
+                        </div>
+                        <div class="composition-legend">
+                            <div class="legend-row">
+                                <span class="legend-color" style="background: #3B82F6;"></span>
+                                <span class="legend-name">GPT-5.3</span>
+                                <span class="legend-value">45%</span>
+                            </div>
+                            <div class="legend-row">
+                                <span class="legend-color" style="background: #8B5CF6;"></span>
+                                <span class="legend-name">Claude 4.6</span>
+                                <span class="legend-value">25%</span>
+                            </div>
+                            <div class="legend-row">
+                                <span class="legend-color" style="background: #10B981;"></span>
+                                <span class="legend-name">Copilot</span>
+                                <span class="legend-value">10%</span>
+                            </div>
+                            <div class="legend-row">
+                                <span class="legend-color" style="background: #6B7280;"></span>
+                                <span class="legend-name">Other</span>
+                                <span class="legend-value">5%</span>
+                            </div>
+                            <div class="legend-row human">
+                                <span class="legend-color" style="background: #374151;"></span>
+                                <span class="legend-name">Human</span>
+                                <span class="legend-value">27%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3>Security Score by Model</h3>
+                    </div>
+                    <div class="model-scores">
+                        <div class="model-score-item">
+                            <div class="model-info">
+                                <span class="model-name">Claude 4.6</span>
+                                <span class="model-percent">90%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 90%; background: #10B981;"></div>
+                            </div>
+                        </div>
+                        <div class="model-score-item">
+                            <div class="model-info">
+                                <span class="model-name">GPT-4</span>
+                                <span class="model-percent">85%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 85%; background: #3B82F6;"></div>
+                            </div>
+                        </div>
+                        <div class="model-score-item">
+                            <div class="model-info">
+                                <span class="model-name">Other</span>
+                                <span class="model-percent">82%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 82%; background: #6B7280;"></div>
+                            </div>
+                        </div>
+                        <div class="model-score-item">
+                            <div class="model-info">
+                                <span class="model-name">Copilot</span>
+                                <span class="model-percent">70%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 70%; background: #F59E0B;"></div>
+                            </div>
+                        </div>
+                        <div class="model-score-item">
+                            <div class="model-info">
+                                <span class="model-name">GPT-5.3</span>
+                                <span class="model-percent">75%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 75%; background: #EF4444;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+                <!-- Tab: Blocked Threats -->
+        <div class="tab-content" id="threats">
+            <div class="metrics-grid small">
+                <div class="metric-card">
+                    <div class="metric-value">127</div>
+                    <div class="metric-label">Total Blocked This Month</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">34</div>
+                    <div class="metric-label">"Looks Clean" Caught</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">23</div>
+                    <div class="metric-label">Hallucinated Packages</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">70</div>
+                    <div class="metric-label">Model-Specific Flaws</div>
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h3>Recent Blocks (Last 24 Hours)</h3>
+                </div>
+                <div class="threat-list">
+                    <div class="threat-item critical">
+                        <div class="threat-icon">🔴</div>
+                        <div class="threat-content">
+                            <div class="threat-header">
+                                <span class="threat-type">"Looks Clean" Alert</span>
+                                <span class="threat-time">2 min ago</span>
+                            </div>
+                            <div class="threat-title">SQL injection in auth.js:45</div>
+                            <div class="threat-details">
+                                <p><strong>Model:</strong> GPT-5.3</p>
+                                <p><strong>Why it looks clean:</strong> Uses template literal syntax</p>
+                                <p><strong>Why it's dangerous:</strong> Unsanitized user input</p>
+                            </div>
+                            <div class="threat-code">
+                                <code>const query = `SELECT * FROM users WHERE id = ${userId}`;</code>
+                            </div>
+                        </div>
+                        <div class="threat-actions">
+                            <button class="btn btn-ghost btn-xs">View Code</button>
+                            <button class="btn btn-ghost btn-xs">View Fix</button>
+                        </div>
+                    </div>
+                        <div class="threat-item warning">
+                        <div class="threat-icon">🟡</div>
+                        <div class="threat-content">
+                            <div class="threat-header">
+                                <span class="threat-type">Hallucinated Package</span>
+                                <span class="threat-time">15 min ago</span>
+                            </div>
+                            <div class="threat-title">fake-package-validator</div>
+                            <div class="threat-details">
+                                <p><strong>Suggested by:</strong> Copilot in VS Code</p>
+                                <p><strong>Action:</strong> Installation blocked</p>
+                                <p><strong>Reason:</strong> Package does not exist in npm registry</p>
+                            </div>
+                        </div>
+                        <div class="threat-actions">
+                            <button class="btn btn-ghost btn-xs">View Suggestion</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Connect -->
+        <div class="tab-content" id="connect">
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3>IDE Extensions</h3>
+                    </div>
+                    <div class="connection-list">
+                        <div class="connection-item connected">
+                            <div class="connection-icon">📝</div>
+                            <div class="connection-info">
+                                <div class="connection-name">VS Code</div>
+                                <div class="connection-status">✅ Connected</div>
+                                <div class="connection-meta">Last active: 2 min ago</div>
+                            </div>
+                            <button class="btn btn-ghost btn-sm">Configure</button>
+                        </div>
+                        <div class="connection-item">
+                            <div class="connection-icon">🖱️</div>
+                            <div class="connection-info">
+                                <div class="connection-name">Cursor</div>
+                                <div class="connection-status">⚠️ Not connected</div>
+                            </div>
+                            <button class="btn btn-primary btn-sm">Install</button>
+                        </div>
+                    </div>
+                </div>
+
+<div class="dashboard-card">
+                    <div class="card-header">
+                        <h3>AI Agent Integrations</h3>
+                    </div>
+                    <div class="connection-list">
+                        <div class="connection-item connected">
+                            <div class="connection-icon">🤖</div>
+                            <div class="connection-info">
+                                <div class="connection-name">Claude Code (MCP)</div>
+                                <div class="connection-status">✅ Connected</div>
+                                <div class="connection-meta">Sessions monitored: 3</div>
+                            </div>
+                            <button class="btn btn-ghost btn-sm">View Config</button>
+                        </div>
+                        <div class="connection-item connected">
+                            <div class="connection-icon">🦑</div>
+                            <div class="connection-info">
+                                <div class="connection-name">GitHub Copilot</div>
+                                <div class="connection-status">✅ Connected</div>
+                                <div class="connection-meta">Suggestions reviewed: 156 today</div>
+                            </div>
+                            <button class="btn btn-ghost btn-sm">Configure</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="js/dashboard.js"></script>
+</body>
+</html>
