@@ -1,0 +1,30 @@
+<nav class="navbar" id="navbar">
+  <div class="container navbar-container">
+    <a href="/" class="navbar-brand">
+      <span class="navbar-logo">🔷</span>
+      <span class="navbar-name">ZEROFALSE</span>
+      <span class="navbar-tagline">The Intent Firewall</span>
+    </a>
+    
+    <div class="navbar-links" id="navbar-links">
+      <a href="#problem" class="navbar-link">Problem</a>
+      <a href="#features" class="navbar-link">Features</a>
+      <a href="#pricing" class="navbar-link">Pricing</a>
+      <a href="/dashboard/" class="navbar-link">Dashboard</a>
+      <a href="https://docs.zerofalse.dev" class="navbar-link" target="_blank">Docs</a>
+    </div>
+    
+    <div class="navbar-actions">
+      <a href="/dashboard/" class="btn btn-secondary btn-sm">Dashboard</a>
+      <a href="https://github.com/apps/zerofalse/installations/new" class="btn btn-primary btn-sm" target="_blank">
+        Install GitHub App
+      </a>
+    </div>
+    
+    <button class="navbar-toggle" id="navbar-toggle" aria-label="Toggle menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </div>
+</nav>
