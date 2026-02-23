@@ -1,84 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZeroFalse - AI Security for AI-Generated Code</title>
-    <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zerofalse — The Intent Firewall for AI-Native Software</title>
+  <meta name="description" content="AI agents write code that looks correct. 45% has dangerous vulnerabilities. Zerofalse finds the 10% that kills you in production.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="../shared/css/variables.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components/navbar.css">
+  <link rel="stylesheet" href="css/components/hero.css">
+  <link rel="stylesheet" href="css/components/problem.css">
+  <link rel="stylesheet" href="css/components/features.css">
+  <link rel="stylesheet" href="css/components/how-it-works.css">
+  <link rel="stylesheet" href="css/components/pricing.css">
+  <link rel="stylesheet" href="css/components/faq.css">
+  <link rel="stylesheet" href="css/components/footer.css">
 </head>
 <body>
-    <div class="container">
-        <header class="header">
-            <div class="logo">
-                <span class="logo-icon">🛡️</span>
-                <h1>ZeroFalse</h1>
-            </div>
-            <p class="tagline">Security scanning that learns from your feedback</p>
-            <div class="accuracy-badge" id="accuracyBadge">
-                <span class="accuracy-label">Accuracy</span>
-                <span class="accuracy-value" id="accuracy">--%</span>
-            </div>
-        </header>
-
-        <section class="stats-section">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value" id="totalScans">--</div>
-                    <div class="stat-label">PRs Scanned</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="totalVulns">--</div>
-                    <div class="stat-label">Vulnerabilities Found</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="falsePositives">--</div>
-                    <div class="stat-label">False Positives Prevented</div>
-                </div>
-            </div>
-        </section>
-
-        <section class="scanner-section">
-            <h2>🧪 Test Scanner</h2>
-            <div class="scanner-input">
-                <select id="languageSelect" class="language-select">
-                    <option value="javascript">JavaScript</option>
-                    <option value="typescript">TypeScript</option>
-                    <option value="python">Python</option>
-                    <option value="java">Java</option>
-                    <option value="php">PHP</option>
-                    <option value="ruby">Ruby</option>
-                    <option value="go">Go</option>
-                </select>
-                <textarea 
-                    id="codeInput" 
-                    placeholder="Paste your code here to scan for security vulnerabilities...
-
-Example vulnerable code:
-function getUser(id) {
-  const query = 'SELECT * FROM users WHERE id = ' + id;
-  return db.query(query);
-}"
-                ></textarea>
-                <button id="scanBtn" class="scan-btn">
-                    <span class="btn-icon">🔍</span>
-                    Scan for Vulnerabilities
-                </button>
-            </div>
-            <div id="scanResult" class="scan-result"></div>
-        </section>
-
-        <section class="scans-section">
-            <h2>📋 Recent Scans</h2>
-            <div id="scansList" class="scans-list">
-                <div class="loading">Loading scans...</div>
-            </div>
-        </section>
-
-        <footer class="footer">
-            <p>Built for YC S25 • Multi-LLM • Privacy-First</p>
-        </footer>
-    </div>
-
-    <script src="js/app.js"></script>
+  <!-- Navigation -->
+  <div id="navbar-container"></div>
+  
+  <!-- Main Content -->
+  <main>
+    <div id="hero-container"></div>
+    <div id="problem-container"></div>
+    <div id="features-container"></div>
+    <div id="how-it-works-container"></div>
+    <div id="pricing-container"></div>
+    <div id="faq-container"></div>
+  </main>
+  
+  <!-- Footer -->
+  <div id="footer-container"></div>
+  
+  <!-- Scripts -->
+  <script src="js/utils/animations.js"></script>
+  <script src="js/components/navbar.js"></script>
+  <script src="js/components/hero.js"></script>
+  <script src="js/components/pricing.js"></script>
+  <script src="js/components/smooth-scroll.js"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>
