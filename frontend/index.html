@@ -382,8 +382,8 @@
             </div>
         </div>
     </section>
-
-    <!-- Pricing Section -->
+    
+<!-- Pricing Section -->
     <section class="pricing" id="pricing">
         <div class="container">
             <div class="section-header">
@@ -416,3 +416,156 @@
                     <ul class="pricing-features">
                         <li>Up to 20 developers</li>
                         <li>Unlimited scans</li>
+                        <li>"Looks clean" detection</li>
+                        <li>Model fingerprinting</li>
+                        <li>Slack alerts</li>
+                        <li>Priority support</li>
+                    </ul>
+                    <a href="#install" class="btn btn-primary btn-block">Start Free</a>
+                </div>
+                
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3 class="pricing-name">Enterprise</h3>
+                        <div class="pricing-price">Custom</div>
+                    </div>
+                    <ul class="pricing-features">
+                        <li>Up to 200 developers</li>
+                        <li>Unlimited everything</li>
+                        <li>SSO & SAML</li>
+                        <li>Custom rules</li>
+                        <li>Dedicated support</li>
+                        <li>SLA guarantee</li>
+                    </ul>
+                    <a href="mailto:enterprise@zerofalse.dev" class="btn btn-secondary btn-block">Contact Sales</a>
+                </div>
+            </div>
+            
+            <div class="pricing-note">
+                <span>🎓</span> Free for open source • <span>💳</span> No credit card to start
+            </div>
+        </div>
+    </section>
+
+        <!-- FAQ Section -->
+    <section class="faq">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">FAQ</span>
+                <h2 class="section-title">Frequently Asked Questions</h2>
+            </div>
+            
+            <div class="faq-list">
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">
+                        We already use Snyk/Semgrep. Why Zerofalse?
+                        <span class="faq-icon">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        Traditional tools catch typos. AI creates architectural flaws that look correct. 
+                        Zerofalse finds "looks clean" vulnerabilities that bypass traditional scanners — 
+                        like SQL injections in well-formatted template literals.
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">
+                        Does this slow down our developers?
+                        <span class="faq-icon">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        No. Zerofalse works in real-time, blocking bad suggestions before developers 
+                        accept them. It's faster than fixing bugs in production. Average check: 0.3s.
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">
+                        What AI tools do you support?
+                        <span class="faq-icon">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        VS Code, Cursor, Windsurf, Claude Code, GitHub Copilot, Codex CLI, 
+                        and any MCP-compatible agent. We're adding new integrations weekly.
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">
+                        What if Zerofalse blocks good code?
+                        <span class="faq-icon">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        Mark it as safe with one click. Our AI learns your codebase and improves. 
+                        False positive rate: &lt;5% and dropping as we learn.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Final CTA Section -->
+    <section class="final-cta" id="install">
+        <div class="container">
+            <h2 class="cta-title">AI Agents Are Writing Code Right Now.</h2>
+            <h3 class="cta-subtitle">Are You Verifying What They're Building?</h3>
+            
+            <p class="cta-text">Join 50+ teams using Zerofalse to secure their AI-native software.</p>
+            
+            <div class="cta-buttons">
+                <a href="https://github.com/apps/zerofalse/installations/new" class="btn btn-primary btn-lg">
+                    <span>🚀</span> Start Free — Install GitHub App
+                </a>
+                <a href="mailto:demo@zerofalse.dev" class="btn btn-ghost btn-lg">
+                    Schedule a Demo
+                </a>
+            </div>
+            
+            <div class="cta-note">
+                ✅ Free 14-day trial • ✅ No credit card • ✅ Setup in 2 minutes
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <div class="logo">
+                        <span class="logo-icon">🔷</span>
+                        <span class="logo-text">ZEROFALSE</span>
+                    </div>
+                    <p class="footer-tagline">The Intent Firewall for AI-Native Software</p>
+                </div>
+                
+                <div class="footer-links">
+                    <h4>Product</h4>
+                    <a href="#how-it-works">Features</a>
+                    <a href="#pricing">Pricing</a>
+                    <a href="dashboard.html">Dashboard</a>
+                </div>
+                
+                <div class="footer-links">
+                    <h4>Company</h4>
+                    <a href="mailto:hello@zerofalse.dev">Contact</a>
+                    <a href="https://docs.zerofalse.vercel.app">Docs</a>
+                    <a href="https://github.com/zerofalse">GitHub</a>
+                </div>
+                
+                <div class="footer-links">
+                    <h4>Legal</h4>
+                    <a href="/privacy">Privacy</a>
+                    <a href="/terms">Terms</a>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>© 2026 Zerofalse. Built for the post-coding era.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="js/main.js"></script>
+</body>
+</html>
